@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionSeeder extends Seeder
 {
@@ -16,6 +17,7 @@ class RolesAndPermissionSeeder extends Seeder
      */
     public function run(): void
     {
+
         Permission::create(['name' => 'create users']);
         Permission::create(['name' => 'edit users']);
         Permission::create(['name' => 'delete users']);
@@ -24,14 +26,9 @@ class RolesAndPermissionSeeder extends Seeder
         Permission::create(['name' => 'import sources']);
         Permission::create(['name' => 'edit sources']);
 
-        // @var Role
-        $adminRole = Role::create(['name' => 'admin']);
-        // @var Role
-        $maintainerRole = Role::create(['name' => 'maintainer']);
-        // @var Role
-        $readerRole = Role::create(['name' => 'reader']);
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $adminRole->givePermissionTo([
+        Role::create(['name' => 'admin'])->givePermissionTo([
             'create users',
             'delete users',
             'edit users',
@@ -40,12 +37,12 @@ class RolesAndPermissionSeeder extends Seeder
             'edit sources',
         ]);
 
-        $maintainerRole->givePermissionTo([
+        Role::create(['name' => 'maintainer'])->givePermissionTo([
             'read sources',
             'import sources',
             'edit sources',
         ]);
 
-        $readerRole->givePermissionTo('read sources');
+        Role::create(['name' => 'reader'])->givePermissionTo('read sources');
     }
 }
