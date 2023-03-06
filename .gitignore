@@ -26,3 +26,4 @@ yarn-error.log
 /.idea
 /.vscode
 /.log
+/_ide_helper.php
