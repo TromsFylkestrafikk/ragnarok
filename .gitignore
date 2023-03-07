@@ -18,12 +18,14 @@ auth.json
 
 # Editors, code generation, logs, cruft
 /.phpunit.cache
-/storage/*.key
-.phpunit.result.cache
-npm-debug.log
-yarn-error.log
 /.fleet
 /.idea
 /.vscode
 /.log
 /_ide_helper.php
+/storage/*.key
+.eslintcache
+.phpactor.json
+.phpunit.result.cache
+npm-debug.log
+yarn-error.log

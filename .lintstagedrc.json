@@ -1,0 +1,8 @@
+{
+    "resources/js/**/*.{js,vue}": "npx eslint --ext=.vue,.js --cache",
+    "app/**/*!(*.blade).php": [
+        "./vendor/bin/phpcs -n --colors --standard=phpcs.xml",
+        "./scripts/phpmd-wrap.sh",
+        "./vendor/bin/phpstan analyze"
+    ]
+}
