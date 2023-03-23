@@ -7,6 +7,11 @@ module.exports = {
         'airbnb-base',
         'eslint:recommended',
     ],
+    globals: {
+        axios: 'readonly',
+        dayjs: 'readonly',
+        route: 'readonly',
+    },
     overrides: [
     ],
     parserOptions: {
@@ -35,5 +40,14 @@ module.exports = {
             minProperties: 5,
             consistent: true,
         }],
+    },
+    settings: {
+        'import/resolver': {
+            'eslint-import-resolver-custom-alias': {
+                alias: {
+                    '@': './resources/js',
+                },
+            },
+        },
     },
 };

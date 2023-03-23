@@ -34,7 +34,7 @@ const form = reactive({
 const passwordInput = ref(null);
 
 const startConfirmingPassword = () => {
-    axios.get(route('password.confirmation')).then(response => {
+    axios.get(route('password.confirmation')).then((response) => {
         if (response.data.confirmed) {
             emit('confirmed');
         } else {
@@ -45,6 +45,12 @@ const startConfirmingPassword = () => {
     });
 };
 
+const closeModal = () => {
+    confirmingPassword.value = false;
+    form.password = '';
+    form.error = '';
+};
+
 const confirmPassword = () => {
     form.processing = true;
 
@@ -52,67 +58,60 @@ const confirmPassword = () => {
         password: form.password,
     }).then(() => {
         form.processing = false;
-
         closeModal();
         nextTick().then(() => emit('confirmed'));
-
-    }).catch(error => {
+    }).catch((error) => {
         form.processing = false;
-        form.error = error.response.data.errors.password[0];
+        [form.error] = error.response.data.errors.password;
         passwordInput.value.focus();
     });
 };
 
-const closeModal = () => {
-    confirmingPassword.value = false;
-    form.password = '';
-    form.error = '';
-};
 </script>
 
 <template>
-    <span>
-        <span @click="startConfirmingPassword">
-            <slot />
-        </span>
-
-        <DialogModal :show="confirmingPassword" @close="closeModal">
-            <template #title>
-                {{ title }}
-            </template>
-
-            <template #content>
-                {{ content }}
-
-                <div class="mt-4">
-                    <TextInput
-                        ref="passwordInput"
-                        v-model="form.password"
-                        type="password"
-                        class="mt-1 block w-3/4"
-                        placeholder="Password"
-                        autocomplete="current-password"
-                        @keyup.enter="confirmPassword"
-                    />
-
-                    <InputError :message="form.error" class="mt-2" />
-                </div>
-            </template>
-
-            <template #footer>
-                <SecondaryButton @click="closeModal">
-                    Cancel
-                </SecondaryButton>
-
-                <PrimaryButton
-                    class="ml-3"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                    @click="confirmPassword"
-                >
-                    {{ button }}
-                </PrimaryButton>
-            </template>
-        </DialogModal>
+  <span>
+    <span @click="startConfirmingPassword">
+      <slot />
     </span>
+
+    <DialogModal :show="confirmingPassword" @close="closeModal">
+      <template #title>
+        {{ title }}
+      </template>
+
+      <template #content>
+        {{ content }}
+
+        <div class="tw-mt-4">
+          <TextInput
+            ref="passwordInput"
+            v-model="form.password"
+            type="password"
+            class="tw-mt-1 tw-block tw-w-3/4"
+            placeholder="Password"
+            autocomplete="current-password"
+            @keyup.enter="confirmPassword"
+          />
+
+          <InputError :message="form.error" class="tw-mt-2" />
+        </div>
+      </template>
+
+      <template #footer>
+        <SecondaryButton @click="closeModal">
+          Cancel
+        </SecondaryButton>
+
+        <PrimaryButton
+          class="tw-ml-3"
+          :class="{ 'tw-opacity-25': form.processing }"
+          :disabled="form.processing"
+          @click="confirmPassword"
+        >
+          {{ button }}
+        </PrimaryButton>
+      </template>
+    </DialogModal>
+  </span>
 </template>

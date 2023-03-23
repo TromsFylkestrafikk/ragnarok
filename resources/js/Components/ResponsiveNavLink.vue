@@ -8,21 +8,21 @@ const props = defineProps({
     as: String,
 });
 
-const classes = computed(() => {
-    return props.active
-        ? 'block w-full pl-3 pr-4 py-2 border-l-4 border-indigo-400 text-left text-base font-medium text-indigo-700 bg-indigo-50 focus:outline-none focus:text-indigo-800 focus:bg-indigo-100 focus:border-indigo-700 transition duration-150 ease-in-out'
-        : 'block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out';
-});
+const classes = computed(() => (
+    props.active
+        ? 'tw-block tw-w-full tw-pl-3 tw-pr-4 tw-py-2 tw-border-l-4 tw-border-indigo-400 tw-text-left tw-text-base tw-font-medium tw-text-indigo-700 tw-bg-indigo-50 focus:tw-outline-none focus:tw-text-indigo-800 focus:tw-bg-indigo-100 focus:tw-border-indigo-700 tw-transition tw-duration-150 tw-ease-in-out'
+        : 'tw-block tw-w-full tw-pl-3 tw-pr-4 tw-py-2 tw-border-l-4 tw-border-transparent tw-text-left tw-text-base tw-font-medium tw-text-gray-600 hover:tw-text-gray-800 hover:tw-bg-gray-50 hover:tw-border-gray-300 focus:tw-outline-none focus:tw-text-gray-800 focus:tw-bg-gray-50 focus:tw-border-gray-300 tw-transition tw-duration-150 tw-ease-in-out'
+));
 </script>
 
 <template>
-    <div>
-        <button v-if="as == 'button'" :class="classes" class="w-full text-left">
-            <slot />
-        </button>
+  <div>
+    <button v-if="as == 'button'" :class="classes" class="tw-w-full tw-text-left">
+      <slot />
+    </button>
 
-        <Link v-else :href="href" :class="classes">
-            <slot />
-        </Link>
-    </div>
+    <Link v-else :href="href" :class="classes">
+      <slot />
+    </Link>
+  </div>
 </template>
