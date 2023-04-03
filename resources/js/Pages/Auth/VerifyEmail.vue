@@ -1,12 +1,11 @@
 <script setup>
 import { computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
+import { Link, useForm } from '@inertiajs/vue3';
+import AppAnon from '@/Layouts/AppAnon.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
 const props = defineProps({
-    status: String,
+    status: { type: String, default: null },
 });
 
 const form = useForm({});
@@ -19,13 +18,7 @@ const verificationLinkSent = computed(() => props.status === 'verification-link-
 </script>
 
 <template>
-  <Head title="Email Verification" />
-
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
+  <AppAnon title="Email Verification">
     <div class="tw-mb-4 tw-text-sm tw-text-gray-600">
       Before continuing, could you verify your email address by clicking on the
       link we just emailed to you? If you didn't receive the email, we will
@@ -62,5 +55,5 @@ const verificationLinkSent = computed(() => props.status === 'verification-link-
         </div>
       </div>
     </form>
-  </AuthenticationCard>
+  </AppAnon>
 </template>

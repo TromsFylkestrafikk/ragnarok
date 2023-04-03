@@ -1,14 +1,13 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
+import { useForm } from '@inertiajs/vue3';
+import AppAnon from '@/Layouts/AppAnon.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 
 defineProps({
-    status: String,
+    status: { type: String, default: null },
 });
 
 const form = useForm({
@@ -21,13 +20,7 @@ const submit = () => {
 </script>
 
 <template>
-  <Head title="Forgot Password" />
-
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
+  <AppAnon title="Forgot Password">
     <div class="tw-mb-4 tw-text-sm tw-text-gray-600">
       Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.
     </div>
@@ -57,5 +50,5 @@ const submit = () => {
         </PrimaryButton>
       </div>
     </form>
-  </AuthenticationCard>
+  </AppAnon>
 </template>

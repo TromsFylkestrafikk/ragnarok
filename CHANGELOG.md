@@ -5,3 +5,6 @@ stack, where we shoe-horn in Vuetify as our main UI.
 
 ### Added
 - Added vuetify UI component framework.
+
+### Removed
+- Example dashboard (authenticated) and welcome (anonymous) scaffolding pages

@@ -1,7 +1,6 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
+import { useForm } from '@inertiajs/vue3';
+import AppAnon from '@/Layouts/AppAnon.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -27,13 +26,7 @@ const submit = () => {
 </script>
 
 <template>
-  <Head title="Reset Password" />
-
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
+  <AppAnon title="Reset Password">
     <form @submit.prevent="submit">
       <div>
         <InputLabel for="email" value="Email" />
@@ -81,5 +74,5 @@ const submit = () => {
         </PrimaryButton>
       </div>
     </form>
-  </AuthenticationCard>
+  </AppAnon>
 </template>

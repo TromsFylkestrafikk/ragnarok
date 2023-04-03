@@ -1,8 +1,7 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
+import { useForm } from '@inertiajs/vue3';
+import AppAnon from '@/Layouts/AppAnon.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -26,13 +25,7 @@ const submit = () => {
 </script>
 
 <template>
-  <Head title="Secure Area" />
-
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
+  <AppAnon title="Secure Area">
     <div class="tw-mb-4 tw-text-sm tw-text-gray-600">
       This is a secure area of the application. Please confirm your password before continuing.
     </div>
@@ -59,5 +52,5 @@ const submit = () => {
         </PrimaryButton>
       </div>
     </form>
-  </AuthenticationCard>
+  </AppAnon>
 </template>

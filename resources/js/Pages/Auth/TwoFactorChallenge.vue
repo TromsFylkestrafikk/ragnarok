@@ -1,8 +1,7 @@
 <script setup>
 import { nextTick, ref } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
+import { useForm } from '@inertiajs/vue3';
+import AppAnon from '@/Layouts/AppAnon.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -38,13 +37,7 @@ const submit = () => {
 </script>
 
 <template>
-  <Head title="Two-factor Confirmation" />
-
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
+  <AppAnon title="Two-factor Confirmation">
     <div class="tw-mb-4 tw-text-sm tw-text-gray-600">
       <template v-if="! recovery">
         Please confirm access to your account by entering the authentication code provided by your authenticator application.
@@ -100,5 +93,5 @@ const submit = () => {
         </PrimaryButton>
       </div>
     </form>
-  </AuthenticationCard>
+  </AppAnon>
 </template>
