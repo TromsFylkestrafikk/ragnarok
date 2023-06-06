@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Facades\Ragnarok;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +22,8 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/', function () {
-        return Inertia::render('ImportStatus');
+        return Inertia::render('ImportStatus', [
+            'sinks' => Ragnarok::getSinksJson(),
+        ]);
     })->name('home');
 });
