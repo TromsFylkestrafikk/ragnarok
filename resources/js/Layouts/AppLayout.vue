@@ -33,8 +33,10 @@ const logout = () => {
           <v-menu activator="parent">
             <v-list>
               <v-list-subheader title="Manage account" />
-              <v-list-item title="Profile" :href="route('profile.show')" />
-              <v-list-item title="Logout" @click.prevent="logout" />
+              <v-list-item title="Profile" :href="route('profile.show')" prepend-icon="mdi-account" />
+              <v-list-item title="User roles" :href="route('user.roles')" prepend-icon="mdi-account-multiple-check-outline" />
+              <v-divider class="border-opacity-100" />
+              <v-list-item title="Logout" prepend-icon="mdi-logout" @click.prevent="logout" />
             </v-list>
           </v-menu>
         </v-avatar>

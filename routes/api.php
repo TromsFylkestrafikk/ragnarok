@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\UserRoleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,3 +21,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::resource('sink/import', ImportController::class)->only(['store', 'show', 'update', 'destroy']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('usersWithRoles', [UserRoleController::class, 'getUsersWithRoles']);
+    Route::get('userRolesWithPermissions', [UserRoleController::class, 'getRolesAndPermissions']);
+    Route::post('updateUserRole/{id}/{role}', [UserRoleController::class, 'setUserRole']);
+});

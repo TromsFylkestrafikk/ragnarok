@@ -8,6 +8,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Added rudimentary plugin system for sinks
 - DB and model of sink imports
 - Broadcast system
+- UI for assigning roles and permissions to users.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages

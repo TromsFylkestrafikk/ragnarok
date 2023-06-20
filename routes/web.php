@@ -26,4 +26,7 @@ Route::middleware([
             'sinks' => Ragnarok::getSinksJson(),
         ]);
     })->name('home');
+    Route::get('auth.roles', function () {
+        return Inertia::render('Auth/Roles');
+    })->name('user.roles');
 });
