@@ -1,0 +1,2 @@
+# min hour day month dow uid cmd
+* * * * * www-data cd /var/www/ragnarok && php artisan schedule:run > /dev/null 2>&1

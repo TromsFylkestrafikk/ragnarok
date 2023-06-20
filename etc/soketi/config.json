@@ -1,0 +1,11 @@
+{
+    "debug": true,
+    "port": 6001,
+    "appManager.array.apps": [
+        {
+            "id": "ragnarok",
+            "key": "ragnarok-dev",
+            "secret": "c140cf37-6929-46b0-bd6d-875914516642"
+        }
+    ]
+}

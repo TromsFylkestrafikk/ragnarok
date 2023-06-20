@@ -12,5 +12,8 @@ module.exports = {
             singleline: 3,
             multiline: 1,
         }],
+        'vue/valid-v-slot': ['error', {
+            allowModifiers: true,
+        }],
     },
 };

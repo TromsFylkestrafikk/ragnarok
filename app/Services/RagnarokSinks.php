@@ -11,12 +11,9 @@ use TromsFylkestrafikk\RagnarokSink\Sinks\Sink;
 class RagnarokSinks
 {
     /**
-     * @param Collection $sinks
+     * @var Collection $sinks
      */
-    public function __construct(protected $sinks = null)
-    {
-        //
-    }
+    protected $sinks = null;
 
     /**
      * @return Collection
@@ -28,10 +25,20 @@ class RagnarokSinks
         }
         $sinks = [];
         foreach (config('ragnarok.sinks') as $sinkClass) {
-            $sinks[] = new $sinkClass();
+            $sinks[] = new RagnarokSink(new $sinkClass());
         }
-        $this->sinks = collect($sinks);
+        $this->sinks = collect($sinks)->keyBy(fn ($sink) => $sink->src->name);
         return $this->sinks;
+    }
+
+    /**
+     * @param string $sinkName
+     *
+     * @return RagnarokSink
+     */
+    public function getSink($sinkName): RagnarokSink
+    {
+        return $this->getSinks()->get($sinkName);
     }
 
     /**
@@ -39,6 +46,9 @@ class RagnarokSinks
      */
     public function getSinksJson(): Collection
     {
-        return $this->getSinks()->map(fn ($sink) => ['name' => $sink->name]);
+        return $this->getSinks()->map(fn ($sink) => [
+            'name' => $sink->src->name,
+            'lastImport' => $sink->lastImport(),
+        ])->values();
     }
 }

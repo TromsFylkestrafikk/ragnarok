@@ -8,6 +8,7 @@ module.exports = {
         'eslint:recommended',
     ],
     globals: {
+        Echo: 'readonly',
         axios: 'readonly',
         dayjs: 'readonly',
         route: 'readonly',
