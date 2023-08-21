@@ -10,6 +10,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Broadcast system
 - UI for assigning roles and permissions to users.
 - Fetch UI and API (stage 1 import) from sinks
+- UI and API for CRUD management of users.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages

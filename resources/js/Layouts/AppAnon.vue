@@ -19,11 +19,6 @@ defineProps({
               Log in
             </Link>
           </v-tab>
-          <v-tab exact>
-            <Link :href="route('register')">
-              Register
-            </Link>
-          </v-tab>
         </v-tabs>
         <v-spacer />
       </v-container>

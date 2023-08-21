@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ChunkController;
 use App\Http\Controllers\ImportController;
-use App\Http\Controllers\UserRoleController;
+use App\Http\Controllers\UserAccountController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,9 +22,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('usersWithRoles', [UserRoleController::class, 'getUsersWithRoles']);
-    Route::get('userRolesWithPermissions', [UserRoleController::class, 'getRolesAndPermissions']);
-    Route::post('updateUserRole/{id}/{role}', [UserRoleController::class, 'setUserRole']);
+    Route::get('userRoleInfo', [UserAccountController::class, 'getUserRoleInfo']);
+    Route::get('usersWithRoles', [UserAccountController::class, 'getUsersWithRoles']);
+    Route::get('userRolesWithPermissions', [UserAccountController::class, 'getRolesAndPermissions']);
+    Route::post('updateUserRole/{id}/{role}', [UserAccountController::class, 'setUserRole']);
+    Route::post('deleteUserAccount/{id}/{notify}', [UserAccountController::class, 'deleteUserAccount']);
 });
 
 Route::resource('sink', ImportController::class)->only(['store', 'show', 'update', 'destroy']);

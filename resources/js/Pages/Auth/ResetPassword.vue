@@ -29,12 +29,12 @@ const submit = () => {
   <AppAnon title="Reset Password">
     <form @submit.prevent="submit">
       <div>
-        <InputLabel for="email" value="Email" />
+        <InputLabel for="email" value="E-mail" />
         <TextInput
           id="email"
           v-model="form.email"
           type="email"
-          class="tw-mt-1 tw-block tw-w-full"
+          style="border: none;"
           required
           autofocus
           autocomplete="username"
@@ -48,7 +48,7 @@ const submit = () => {
           id="password"
           v-model="form.password"
           type="password"
-          class="tw-mt-1 tw-block tw-w-full"
+          style="border: none;"
           required
           autocomplete="new-password"
         />
@@ -61,7 +61,7 @@ const submit = () => {
           id="password_confirmation"
           v-model="form.password_confirmation"
           type="password"
-          class="tw-mt-1 tw-block tw-w-full"
+          style="border: none;"
           required
           autocomplete="new-password"
         />

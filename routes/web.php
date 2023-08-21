@@ -2,6 +2,7 @@
 
 use App\Facades\Ragnarok;
 use App\Http\Controllers\SinkController;
+use App\Http\Controllers\UserAccountController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,4 +32,8 @@ Route::middleware([
     Route::get('auth.roles', function () {
         return Inertia::render('Auth/Roles');
     })->name('user.roles');
+    Route::get('user.accounts', function () {
+        return Inertia::render('AccountManagement/UserAccounts');
+    })->name('user.accounts');
+    Route::post('account.create', [UserAccountController::class, 'addUserAccount'])->name('account.create');
 });

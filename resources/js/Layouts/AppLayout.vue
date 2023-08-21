@@ -17,25 +17,22 @@ const logout = () => {
     <v-app-bar flat color="primary">
       <v-container class="fill-height py-0">
         <v-app-bar-title :text="title" />
-        <v-tabs centered color="secondary">
-          <v-tab exact>
-            <Link :href="route('home')" :active="route().current('home')">
-              Home
-            </Link>
-          </v-tab>
-        </v-tabs>
+        <Link :href="route('home')" :active="route().current('home')" class="home-link">
+          Home
+        </Link>
         <v-spacer />
         <v-avatar v-if="$page.props.auth?.user">
           <img
             :src="$page.props.auth.user.profile_photo_url"
             :alt="$page.props.auth.user.name"
+            style="width: inherit;"
           >
           <v-menu activator="parent">
             <v-list>
               <v-list-subheader title="Manage account" />
               <v-list-item title="Profile" :href="route('profile.show')" prepend-icon="mdi-account" />
-              <v-list-item title="User roles" :href="route('user.roles')" prepend-icon="mdi-account-multiple-check-outline" />
-              <v-divider class="border-opacity-100" />
+              <v-list-item title="User accounts" :href="route('user.accounts')" prepend-icon="mdi-account-multiple-check-outline" />
+              <v-divider class="border-opacity-30" />
               <v-list-item title="Logout" prepend-icon="mdi-logout" @click.prevent="logout" />
             </v-list>
           </v-menu>
@@ -52,3 +49,13 @@ const logout = () => {
     </v-main>
   </v-app>
 </template>
+
+<style lang="scss" scoped>
+  .home-link {
+    text-shadow: 0px 0px 4px white;
+    text-underline-offset: 3px;
+    margin-left: 40px;
+    font-weight: bold;
+    color: white;
+  }
+</style>

@@ -6,7 +6,6 @@ import FormSection from '@/Components/FormSection.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);
@@ -50,38 +49,41 @@ const updatePassword = () => {
     <template #form>
       <div class="tw-col-span-6 sm:tw-col-span-4">
         <InputLabel for="current_password" value="Current Password" />
-        <TextInput
+        <v-text-field
           id="current_password"
           ref="currentPasswordInput"
           v-model="form.current_password"
           type="password"
-          class="tw-mt-1 tw-block tw-w-full"
+          density="compact"
           autocomplete="current-password"
+          hide-details
         />
         <InputError :message="form.errors.current_password" class="tw-mt-2" />
       </div>
 
       <div class="tw-col-span-6 sm:tw-col-span-4">
         <InputLabel for="password" value="New Password" />
-        <TextInput
+        <v-text-field
           id="password"
           ref="passwordInput"
           v-model="form.password"
           type="password"
-          class="tw-mt-1 tw-block tw-w-full"
+          density="compact"
           autocomplete="new-password"
+          hide-details
         />
         <InputError :message="form.errors.password" class="tw-mt-2" />
       </div>
 
       <div class="tw-col-span-6 sm:tw-col-span-4">
         <InputLabel for="password_confirmation" value="Confirm Password" />
-        <TextInput
+        <v-text-field
           id="password_confirmation"
           v-model="form.password_confirmation"
           type="password"
-          class="tw-mt-1 tw-block tw-w-full"
+          density="compact"
           autocomplete="new-password"
+          hide-details
         />
         <InputError :message="form.errors.password_confirmation" class="tw-mt-2" />
       </div>

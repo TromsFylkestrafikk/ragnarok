@@ -40,7 +40,7 @@ const submit = () => {
   <AppAnon title="Two-factor Confirmation">
     <div class="tw-mb-4 tw-text-sm tw-text-gray-600">
       <template v-if="! recovery">
-        Please confirm access to your account by entering the authentication code provided by your authenticator application.
+        Please confirm access to your account by entering the authentication code provided by your Authenticator app.
       </template>
 
       <template v-else>
@@ -57,7 +57,7 @@ const submit = () => {
           v-model="form.code"
           type="text"
           inputmode="numeric"
-          class="tw-mt-1 tw-block tw-w-full"
+          style="border: none;"
           autofocus
           autocomplete="one-time-code"
         />
@@ -71,14 +71,19 @@ const submit = () => {
           ref="recoveryCodeInput"
           v-model="form.recovery_code"
           type="text"
-          class="tw-mt-1 tw-block tw-w-full"
+          style="border: none;"
           autocomplete="one-time-code"
         />
         <InputError class="tw-mt-2" :message="form.errors.recovery_code" />
       </div>
 
       <div class="tw-flex tw-items-center tw-justify-end tw-mt-4">
-        <button type="button" class="tw-text-sm tw-text-gray-600 hover:tw-text-gray-900 tw-underline tw-cursor-pointer" @click.prevent="toggleRecovery">
+        <button
+          type="button"
+          class="tw-text-sm tw-text-gray-600 hover:tw-text-gray-900 tw-underline tw-cursor-pointer"
+          style="border: none;"
+          @click.prevent="toggleRecovery"
+        >
           <template v-if="! recovery">
             Use a recovery code
           </template>

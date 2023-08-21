@@ -7,7 +7,6 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 
 const props = defineProps({
     user: Object,
@@ -90,6 +89,7 @@ const deletePhoto = () => {
       <div v-if="$page.props.jetstream.managesProfilePhotos" class="tw-col-span-6 sm:tw-col-span-4">
         <!-- Profile Photo File Input -->
         <input
+          id="photo"
           ref="photoInput"
           type="file"
           class="tw-hidden"
@@ -130,25 +130,27 @@ const deletePhoto = () => {
       <!-- Name -->
       <div class="tw-col-span-6 sm:tw-col-span-4">
         <InputLabel for="name" value="Name" />
-        <TextInput
+        <v-text-field
           id="name"
           v-model="form.name"
           type="text"
-          class="tw-mt-1 tw-block tw-w-full"
+          density="compact"
           autocomplete="name"
+          hide-details
         />
         <InputError :message="form.errors.name" class="tw-mt-2" />
       </div>
 
       <!-- Email -->
       <div class="tw-col-span-6 sm:tw-col-span-4">
-        <InputLabel for="email" value="Email" />
-        <TextInput
+        <InputLabel for="email" value="E-mail" />
+        <v-text-field
           id="email"
           v-model="form.email"
           type="email"
-          class="tw-mt-1 tw-block tw-w-full"
+          density="compact"
           autocomplete="username"
+          hide-details
         />
         <InputError :message="form.errors.email" class="tw-mt-2" />
 

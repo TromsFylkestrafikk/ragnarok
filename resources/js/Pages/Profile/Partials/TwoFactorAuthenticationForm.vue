@@ -122,7 +122,8 @@ const disableTwoFactorAuthentication = () => {
 
       <div class="tw-mt-3 tw-max-w-xl tw-text-sm tw-text-gray-600">
         <p>
-          When two factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.
+          When two factor authentication is enabled, you will be prompted for a secure, random token during authentication.
+          You may retrieve this token from your phone's Authenticator app.
         </p>
       </div>
 
@@ -189,7 +190,7 @@ const disableTwoFactorAuthentication = () => {
 
       <div class="tw-mt-5">
         <div v-if="!twoFactorEnabled">
-          <ConfirmsPassword @confirmed="enableTwoFactorAuthentication">
+          <ConfirmsPassword title="Enable Two Factor Authentication" @confirmed="enableTwoFactorAuthentication">
             <PrimaryButton type="button" :class="{ 'tw-opacity-25': enabling }" :disabled="enabling">
               Enable
             </PrimaryButton>
@@ -218,7 +219,7 @@ const disableTwoFactorAuthentication = () => {
             </SecondaryButton>
           </ConfirmsPassword>
 
-          <ConfirmsPassword @confirmed="showRecoveryCodes">
+          <ConfirmsPassword title="Show Two Factor Recovery Codes" @confirmed="showRecoveryCodes">
             <SecondaryButton
               v-if="recoveryCodes.length === 0 && ! confirming"
               class="tw-mr-3"
@@ -237,7 +238,7 @@ const disableTwoFactorAuthentication = () => {
             </SecondaryButton>
           </ConfirmsPassword>
 
-          <ConfirmsPassword @confirmed="disableTwoFactorAuthentication">
+          <ConfirmsPassword title="Disable Two Factor Authentication" @confirmed="disableTwoFactorAuthentication">
             <DangerButton
               v-if="! confirming"
               :class="{ 'tw-opacity-25': disabling }"

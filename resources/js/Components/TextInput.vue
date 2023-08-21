@@ -19,10 +19,13 @@ defineExpose({ focus: () => input.value.focus() });
 </script>
 
 <template>
-    <input
+    <v-text-field
         ref="input"
-        class="tw-border-gray-300 focus:tw-border-indigo-500 focus:tw-ring-indigo-500 tw-rounded-md tw-shadow-sm"
         :value="modelValue"
+        density="compact"
+        variant="solo-filled"
+        style="border: black 2px solid;"
+        hide-details
         @input="$emit('update:modelValue', $event.target.value)"
-    >
+    />
 </template>

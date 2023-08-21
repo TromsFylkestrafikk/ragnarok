@@ -31,12 +31,12 @@ const submit = () => {
 
     <form @submit.prevent="submit">
       <div>
-        <InputLabel for="email" value="Email" />
+        <InputLabel for="email" value="E-mail" />
         <TextInput
           id="email"
           v-model="form.email"
           type="email"
-          class="tw-mt-1 tw-block tw-w-full"
+          style="border: none;"
           required
           autofocus
           autocomplete="username"
