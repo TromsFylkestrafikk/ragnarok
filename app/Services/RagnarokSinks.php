@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Chunk;
 use Illuminate\Support\Collection;
 use TromsFylkestrafikk\RagnarokSink\Sinks\Sink;
 
@@ -27,18 +28,18 @@ class RagnarokSinks
         foreach (config('ragnarok.sinks') as $sinkClass) {
             $sinks[] = new RagnarokSink(new $sinkClass());
         }
-        $this->sinks = collect($sinks)->keyBy(fn ($sink) => $sink->src->name);
+        $this->sinks = collect($sinks)->keyBy(fn ($sink) => $sink->src->id);
         return $this->sinks;
     }
 
     /**
-     * @param string $sinkName
+     * @param string $sinkId
      *
      * @return RagnarokSink
      */
-    public function getSink($sinkName): RagnarokSink
+    public function getSink($sinkId): RagnarokSink
     {
-        return $this->getSinks()->get($sinkName);
+        return $this->getSinks()->get($sinkId);
     }
 
     /**
@@ -47,7 +48,8 @@ class RagnarokSinks
     public function getSinksJson(): Collection
     {
         return $this->getSinks()->map(fn ($sink) => [
-            'name' => $sink->src->name,
+            'id' => $sink->src->id,
+            'title' => $sink->src->title,
             'lastImport' => $sink->lastImport(),
         ])->values();
     }

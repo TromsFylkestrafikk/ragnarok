@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Foundation\Application;
+use App\Facades\Ragnarok;
+use App\Http\Controllers\SinkController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Facades\Ragnarok;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,11 +21,13 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+    Route::resource('sink', SinkController::class)->only(['index', 'show', 'update']);
     Route::get('/', function () {
         return Inertia::render('ImportStatus', [
             'sinks' => Ragnarok::getSinksJson(),
         ]);
     })->name('home');
+
     Route::get('auth.roles', function () {
         return Inertia::render('Auth/Roles');
     })->name('user.roles');

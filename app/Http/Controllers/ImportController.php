@@ -28,8 +28,8 @@ class ImportController extends Controller
     public function store(Request $request)
     {
         // Assert no other import is in progress
-        $sinkName = $request->input('sink_name');
-        $importing = SinkImport::running()->whereSinkName($sinkName)->first();
+        $sinkId = $request->input('sink_id');
+        $importing = SinkImport::running()->whereSinkId($sinkId)->first();
         if ($importing) {
             return response('Import already in progress', Response::HTTP_TOO_EARLY);
         }

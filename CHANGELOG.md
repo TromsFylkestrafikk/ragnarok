@@ -9,6 +9,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - DB and model of sink imports
 - Broadcast system
 - UI for assigning roles and permissions to users.
+- Fetch UI and API (stage 1 import) from sinks
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages

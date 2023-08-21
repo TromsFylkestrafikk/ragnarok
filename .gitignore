@@ -8,7 +8,7 @@
 # Build content
 /public/build
 /public/hot
-/public/storage
+/storage
 
 # Configuration and settings
 .env

@@ -63,16 +63,16 @@
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "../ragnarok-consat"
+            "type": "github",
+            "url": "https://github.com/TromsFylkestrafikk/ragnarok-consat"
         },
         {
-            "type": "path",
-            "url": "../ragnarok-ruter"
+            "type": "github",
+            "url": "https://github.com/TromsFylkestrafikk/ragnarok-ruter"
         },
         {
-            "type": "path",
-            "url": "../ragnarok-sink"
+            "type": "github",
+            "url": "https://github.com/TromsFylkestrafikk/ragnarok-sink"
         }
     ],
     "extra": {

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  * App\Models\SinkImport
  *
  * @property int $id Sink import ID
- * @property string $sink_name
+ * @property string $sink_id
  * @property string|null $started_at When import from sink started
  * @property string|null $finished_at When import from sink finished
  * @property string $status Import status
@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  * @method static Builder|SinkImport running()
  * @method static Builder|SinkImport whereFinishedAt($value)
  * @method static Builder|SinkImport whereId($value)
- * @method static Builder|SinkImport whereSinkName($value)
+ * @method static Builder|SinkImport whereSinkId($value)
  * @method static Builder|SinkImport whereStartedAt($value)
  * @method static Builder|SinkImport whereStatus($value)
  * @mixin \Eloquent
@@ -34,7 +34,7 @@ class SinkImport extends Model
 
     public $timestamps = false;
     protected $table = 'ragnarok_imports';
-    protected $fillable = ['sink_name', 'started_at', 'finished_at', 'status'];
+    protected $fillable = ['sink_id', 'started_at', 'finished_at', 'status'];
 
     public function scopeRunning(Builder $query): Builder
     {

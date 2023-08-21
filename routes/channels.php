@@ -21,3 +21,8 @@ Broadcast::channel('App.Models.SinkImport', function ($user) {
     // return $user->hasDirectPermission('read sources');
     return true;
 });
+
+Broadcast::channel('App.Models.Chunk', function ($user) {
+    // return $user->hasDirectPermission('read sources');
+    return true;
+});

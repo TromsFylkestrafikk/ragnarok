@@ -35,7 +35,7 @@ class ImportChunk implements ShouldQueue
         $this->import->status = 'importing';
         $this->import->started_at = now();
         $this->import->save();
-        $result = Ragnarok::getSink($this->import->sink_name)->src->import();
+        $result = Ragnarok::getSink($this->import->sink_id)->src->import();
         $this->import->status = $result ? 'finished' : 'failed';
         $this->import->finished_at = now();
         $this->import->save();
