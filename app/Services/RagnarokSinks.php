@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Chunk;
 use Illuminate\Support\Collection;
-use TromsFylkestrafikk\RagnarokSink\Sinks\Sink;
 
 /**
  * Service for operating on sinks

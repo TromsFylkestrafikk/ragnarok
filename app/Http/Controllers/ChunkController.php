@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
-use App\Jobs\FetchChunk;
+use App\Jobs\FetchChunks;
+use App\Jobs\RemoveChunks;
 use App\Models\Chunk;
 use Illuminate\Http\Request;
 
@@ -28,7 +29,7 @@ class ChunkController extends Controller
     public function fetch(Request $request, $sinkId)
     {
         $chunkIds = (array) $request->input('ids');
-        FetchChunk::dispatch($sinkId, $chunkIds);
+        FetchChunks::dispatch($sinkId, $chunkIds);
         return response(['message' => 'Fetch job dispatched', 'status' => true]);
     }
 
@@ -51,8 +52,10 @@ class ChunkController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $chunkId)
+    public function destroy(Request $request, string $sinkId)
     {
-        //
+        $chunkIds = (array) $request->input('ids');
+        RemoveChunks::dispatch($sinkId, $chunkIds);
+        return response(['message' => 'Chunks removal job dispatched', 'status' => true]);
     }
 }
