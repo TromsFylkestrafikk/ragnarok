@@ -56,7 +56,7 @@ class RagnarokSink
      */
     public function getChunks($itemsPerPage = 20, $orderBy = null)
     {
-        /** @var \Illuminate\Database\Eloquent\Builder $baseQuery */
+        /** @var Builder $baseQuery */
         $baseQuery = Chunk::where('sink_id', $this->src->id);
         if (!empty($orderBy)) {
             $baseQuery->orderBy($orderBy['key'], $orderBy['order']);
