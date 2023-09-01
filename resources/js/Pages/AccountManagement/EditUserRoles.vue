@@ -14,11 +14,12 @@ const userRole = ref(props.user.role);
 const roleChanged = computed(() => userRole.value !== props.user.role);
 
 const saveUserRole = () => {
-    axios.post(`/api/updateUserRole/${props.user.id}/${userRole.value}`).then((response) => {
+    axios.put(`/account/${props.user.id}`, { newRole: userRole.value }).then((response) => {
         if (!response.data.success) {
             emit('error', `ERROR ${response.data.errorCode}: ${response.data.errorMsg}`);
         }
-    }).finally(() => emit('refresh'));
+    }).catch((error) => emit('error', `ERROR: ${error.message}`))
+        .finally(() => emit('refresh'));
 };
 </script>
 

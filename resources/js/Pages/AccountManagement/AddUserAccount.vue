@@ -45,7 +45,7 @@ const roleRules = () => (form.role ? true : 'Required');
 
 const createAccount = () => {
     form.email = form.email.toLowerCase();
-    form.post(route('account.create'), {
+    form.post(route('account.store'), {
         onFinish: () => emit('refresh'),
         onError: (e) => emit('error', `ERROR ${Object.values(e.message).shift()}`),
     });

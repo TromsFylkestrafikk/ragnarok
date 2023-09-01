@@ -22,6 +22,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+    Route::resource('account', UserAccountController::class)->except(['create', 'edit']);
     Route::resource('sink', SinkController::class)->only(['index', 'show', 'update']);
     Route::get('/', function () {
         return Inertia::render('ImportStatus', [
@@ -29,11 +30,7 @@ Route::middleware([
         ]);
     })->name('home');
 
-    Route::get('auth.roles', function () {
-        return Inertia::render('Auth/Roles');
-    })->name('user.roles');
     Route::get('user.accounts', function () {
         return Inertia::render('AccountManagement/UserAccounts');
     })->name('user.accounts');
-    Route::post('account.create', [UserAccountController::class, 'addUserAccount'])->name('account.create');
 });

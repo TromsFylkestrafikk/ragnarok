@@ -40,7 +40,7 @@ const handleErrorResponse = (error) => {
 };
 
 const getAllUserAccounts = () => {
-    axios.get('/api/usersWithRoles').then((response) => {
+    axios.get('/account').then((response) => {
         users.value = response.data.users;
         ownId.value = response.data.userId;
         roleNames.value = response.data.roles;
@@ -56,7 +56,7 @@ onBeforeMount(() => {
 });
 
 const showRoleDlg = (id) => {
-    axios.get('/api/userRolesWithPermissions').then((response) => {
+    axios.get(`/account/${id}`).then((response) => {
         roles.value = response.data.roles;
         permissions.value = response.data.permissions;
         selectedUser.value = users.value.find((user) => user.id === id);

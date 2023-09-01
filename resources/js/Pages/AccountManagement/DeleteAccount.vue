@@ -18,11 +18,10 @@ const notification = ref(true);
 
 const deleteUserAccount = () => {
     loading.value = true;
-    axios.post(`/api/deleteUserAccount/${props.user.id}/${notification.value}`).then((response) => {
-        if (!response.data.success) {
-            emit('error', `ERROR ${response.data.errorCode}: ${response.data.errorMsg}`);
-        }
-    }).finally(() => emit('refresh'));
+    const payload = { notify: notification.value };
+    axios.delete(`/account/${props.user.id}`, { data: payload })
+        .catch((error) => emit('error', `ERROR: ${error.message}`))
+        .finally(() => emit('refresh'));
 };
 </script>
 
