@@ -7,6 +7,7 @@ use App\Models\Chunk;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use TromsFylkestrafikk\RagnarokSink\Sinks\SinkBase;
 use TromsFylkestrafikk\RagnarokSink\Services\DbBulkInsert;
 use TromsFylkestrafikk\RagnarokSink\Traits\LogPrintf;
@@ -14,6 +15,11 @@ use TromsFylkestrafikk\RagnarokSink\Traits\LogPrintf;
 class RagnarokSink
 {
     use LogPrintf;
+
+    /**
+     * Cache available chunks for this many seconds.
+     */
+    const CHUNK_CACHE_EXPIRE = 60 * 60;
 
     public function __construct(public SinkBase $src)
     {
@@ -56,16 +62,13 @@ class RagnarokSink
      */
     public function getChunks($itemsPerPage = 20, $orderBy = null)
     {
+        $this->initChunks();
         /** @var Builder $baseQuery */
         $baseQuery = Chunk::where('sink_id', $this->src->id);
         if (!empty($orderBy)) {
             $baseQuery->orderBy($orderBy['key'], $orderBy['order']);
         }
         $baseQuery->orderBy('chunk_id', 'desc');
-        $count = $baseQuery->count();
-        if (!$count) {
-            $this->initChunks();
-        }
         return $baseQuery->paginate($itemsPerPage)->items();
     }
 
@@ -122,16 +125,48 @@ class RagnarokSink
         return $this;
     }
 
+    /**
+     * Create missing chunks in db.
+     *
+     * @return void
+     */
     protected function initChunks()
     {
-        $ids = $this->src->getChunkIds();
+        if (Cache::get($this->initCacheKey())) {
+            return;
+        }
+        $newIds = $this->chunkIdsNotInDb();
         $records = [];
-        foreach ($ids as $chunkId) {
+        foreach ($newIds as $chunkId) {
             $records[] = [
                 'chunk_id' => $chunkId,
                 'sink_id' => $this->src->id,
             ];
         }
-        Chunk::upsert($records, ['chunk_id', 'sink_id']);
+        if (count($records)) {
+            Chunk::insertOrIgnore($records);
+        }
+        Cache::put($this->initCacheKey(), true, self::CHUNK_CACHE_EXPIRE);
+    }
+
+    /**
+     * Get list of Chunk IDs not present in storage.
+     *
+     * @return array
+     */
+    protected function chunkIdsNotInDb()
+    {
+        $ids = $this->src->getChunkIds();
+        $existing = Chunk::select(['chunk_id'])
+            ->where('sink_id', $this->src->id)
+            ->orderBy('chunk_id')
+            ->pluck('chunk_id')
+            ->toArray();
+        return array_diff($ids, $existing);
+    }
+
+    protected function initCacheKey()
+    {
+        return sprintf('ragnarok-sink-%d-chunk-initialized', $this->src->id);
     }
 }
