@@ -14,7 +14,6 @@ const headers = ref([
     { title: 'Chunk ID', key: 'chunk_id', sortable: true },
     { title: 'Fetch status', key: 'fetch_status', sortable: true },
     { title: 'Import status', key: 'import_status', sortable: true },
-    { title: 'Imported at', key: 'imported_at', sortable: false },
 ]);
 
 const items = ref([]);
@@ -34,7 +33,7 @@ const statusColor = ref({
     failed: 'red',
 });
 
-const confDiags = reactive({ rmChunks: false, rmChunk: false });
+const confDiags = reactive({ rmChunks: false, rmChunk: false, delImports: false, delImport: false });
 
 async function loadItems({ page, itemsPerPage, sortBy }) {
     loading.value = true;
@@ -51,8 +50,8 @@ function prettyDate(dateStr) {
     return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss');
 }
 
-function setSelectionFetchState(state) {
-    selection.value.forEach((chunkId) => itemsKeyed.value[chunkId] && (itemsKeyed.value[chunkId].fetch_status = state));
+function setSelectionState(column, state) {
+    selection.value.forEach((chunkId) => itemsKeyed.value[chunkId] && (itemsKeyed.value[chunkId][column] = state));
 }
 
 function fetchChunk(chunkId) {
@@ -62,8 +61,18 @@ function fetchChunk(chunkId) {
 }
 
 function fetchSelection() {
-    setSelectionFetchState('pending');
+    setSelectionState('fetch_status', 'pending');
     axios.post(`/api/sink/${props.sink.id}/chunk/fetch`, { ids: selection.value.sort() });
+}
+
+function importChunk(chunkId) {
+    itemsKeyed.value[chunkId].import_status = 'pending';
+    axios.post(`/api/sink/${props.sink.id}/chunk/import`, { ids: [chunkId] });
+}
+
+function importSelection() {
+    setSelectionState('import_status', 'pending');
+    axios.post(`/api/sink/${props.sink.id}/chunk/import`, { ids: selection.value.sort() });
 }
 
 const targetChunkId = ref(null);
@@ -81,16 +90,29 @@ function deleteChunk(chunkId) {
  * Delete stage 1 data (chunks) from selection
  */
 function deleteSelectionOfChunks() {
-    setSelectionFetchState('pending');
+    setSelectionState('fetch_status', 'pending');
     axios.post(`/api/sink/${props.sink.id}/chunk/destroy`, { ids: selection.value.sort() });
+}
+
+function deleteChunkImport(chunkId) {
+    itemsKeyed.value[chunkId].import_status = 'pending';
+    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImport`, { ids: [chunkId] });
+}
+
+function confirmImportDeletion(chunkId) {
+    targetChunkId.value = chunkId;
+    confDiags.delImport = true;
+}
+
+/**
+ * Delete imported data from DB for given chunk
+ */
+function deleteSelectionImport() {
+    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImport`, { ids: selection.value.sort() });
 }
 
 function resetSelection() {
     selection.value = [];
-}
-
-function chunkMayExists(chunkId) {
-    return itemsKeyed.value[chunkId].fetch_status !== 'new';
 }
 
 function updateChunk(src, dest) {
@@ -148,16 +170,32 @@ onMounted(() => {
           <v-btn icon variant="plain" @click="fetchSelection()">
             <v-icon icon="mdi-tray-arrow-down" />
             <v-tooltip activator="parent" location="top">
-              Fetch selected chunks to local storage from sink
+              Stage 1: Fetch raw chunks to local storage
             </v-tooltip>
           </v-btn>
           <v-btn icon variant="plain">
             <v-icon icon="mdi-tray-remove" />
             <v-tooltip activator="parent" location="top">
-              Remove selected chunks from local storage
+              Stage 1: Remove selected chunks from local storage
             </v-tooltip>
             <confirm-dialog v-model="confDiags.rmChunks" activator="parent" @confirmed="deleteSelectionOfChunks()">
               This will erase the raw, stage 1 data. Are you sure?
+            </confirm-dialog>
+          </v-btn>
+          <v-btn icon variant="plain" @click="importSelection()">
+            <v-icon icon="mdi-database-arrow-down" />
+            <v-tooltip activator="parent" location="top">
+              Stage 2: Import chunks to DB.
+            </v-tooltip>
+          </v-btn>
+          <v-btn icon variant="plain">
+            <v-icon icon="mdi-database-remove" />
+            <v-tooltip activator="parent" location="top">
+              Stage 2: Remove imported data from DB.
+            </v-tooltip>
+            <confirm-dialog v-model="confDiags.delImports" activator="parent" @confirmed="deleteSelectionImport()">
+              <p>This will delete the processed, imported data from database storage.</p>
+              <p>Proceed?</p>
             </confirm-dialog>
           </v-btn>
         </v-toolbar>
@@ -172,18 +210,18 @@ onMounted(() => {
         <v-btn icon variant="plain" @click="fetchChunk(item.raw.id)">
           <v-icon icon="mdi-tray-arrow-down" />
           <v-tooltip activator="parent">
-            Fetch chunk to stage 1 local storage from sink
+            Stage 1: Fetch chunk to local storage from sink
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="chunkMayExists(item.raw.id)"
+          v-if="item.raw.fetch_status !=='new'"
           icon
           variant="plain"
           @click="confirmChunkDeletion(item.raw.id)"
         >
           <v-icon icon="mdi-tray-remove" />
           <v-tooltip activator="parent">
-            Remove chunk from stage 1 local storage
+            Stage 1: Remove chunk from local storage
           </v-tooltip>
         </v-btn>
       </template>
@@ -191,15 +229,33 @@ onMounted(() => {
         <v-chip :color="statusColor[item.columns.import_status]">
           {{ item.columns.import_status }}
         </v-chip>
-      </template>
-      <template #item.imported_at="{ item }">
-        {{ prettyDate(item.columns.imported_at) }}
+        <v-btn icon variant="plain" @click="importChunk(item.raw.id)">
+          <v-icon icon="mdi-database-arrow-down" />
+          <v-tooltip activator="parent">
+            Stage 2: Import chunk to database
+          </v-tooltip>
+        </v-btn>
+        <v-btn
+          v-if="item.raw.import_status !== 'new'"
+          icon
+          variant="plain"
+          @click="confirmImportDeletion(item.raw.id)"
+        >
+          <v-icon icon="mdi-database-remove" />
+          <v-tooltip activator="parent">
+            Stage 2: Delete chunk from database
+          </v-tooltip>
+        </v-btn>
       </template>
     </v-data-table-server>
 
     <confirm-dialog v-model="confDiags.rmChunk" @confirmed="deleteChunk(targetChunkId)">
       <p>This will permamently remove local copy of raw, stage 1 data.</p>
       <p>Are you sure you want to erase it?</p>
+    </confirm-dialog>
+    <confirm-dialog v-model="confDiags.delImport" @confirmed="deleteChunkImport(targetChunkId)">
+      <p>This will delete the processed, imported data from database storage.</p>
+      <p>Proceed?</p>
     </confirm-dialog>
   </app-layout>
 </template>

@@ -68,8 +68,7 @@ class RagnarokSink
         if (!empty($orderBy)) {
             $baseQuery->orderBy($orderBy['key'], $orderBy['order']);
         }
-        $baseQuery->orderBy('chunk_id', 'desc');
-        return $baseQuery->paginate($itemsPerPage)->items();
+        return $baseQuery->orderBy('chunk_id', 'desc')->paginate($itemsPerPage)->items();
     }
 
     /**
@@ -81,23 +80,12 @@ class RagnarokSink
      */
     public function fetchChunks($chunkIds): RagnarokSink
     {
-        $chunks = Chunk::where('sink_id', $this->src->id)->whereIn('id', $chunkIds)->get();
-        if ($chunks->count() !== count($chunkIds)) {
-            throw new Exception('Mismatch between requested and actual chunks');
-        }
+        $chunks = $this->getChunkModels($chunkIds);
         $start = microtime(true);
-        $lapStart = $start;
         $this->debug('Fetching %d chunks ...', $chunks->count());
         foreach ($chunks as $chunk) {
-            $chunk->fetch_status = 'in_progress';
-            $chunk->imported_at = null;
-            $chunk->save();
-            $chunk->fetch_status = $this->src->fetch($chunk->chunk_id) ? 'finished' : 'failed';
-            $chunk->fetched_at = now();
-            $chunk->save();
-            $lapTime = microtime(true);
-            $this->debug('Fetched chunk %s in %.2f seconds', $chunk->chunk_id, $lapTime - $lapStart);
-            $lapStart = $lapTime;
+            /** @var Chunk $chunk */
+            $this->fetchChunk($chunk);
         }
         $this->info("Fetched %d chunks in %.2f seconds", count($chunkIds), microtime(true) - $start);
         return $this;
@@ -123,6 +111,103 @@ class RagnarokSink
         }
         $this->info('Deleted %d chunks in %.2f seconds', count($chunkIds), microtime(true) - $start);
         return $this;
+    }
+
+    /**
+     * @param array $chunkIds
+     */
+    public function importChunks($chunkIds): RagnarokSink
+    {
+        $chunks = $this->getChunkModels($chunkIds);
+        $start = microtime(true);
+        $this->debug('Importing %d chunks ...', $chunks->count());
+        foreach ($chunks as $chunk) {
+            /** @var Chunk $chunk */
+            $this->importChunk($chunk);
+        }
+        $this->info("Imported %d chunks in %.2f seconds", count($chunkIds), microtime(true) - $start);
+        return $this;
+    }
+
+    /**
+     * Delete imported data from these chunk IDs.
+     *
+     * @param array $chunkIds
+     *
+     * @return $this
+     */
+    public function deleteImports($chunkIds): RagnarokSink
+    {
+        $chunks = Chunk::where('sink_id', $this->src->id)->whereIn('id', $chunkIds)->get();
+        $this->debug('Deleting import of %d chunks ...', $chunks->count());
+        $start = microtime(true);
+        foreach ($chunks as $chunk) {
+            /** @var Chunk $chunk */
+            $chunk->imported_at = null;
+            $chunk->import_status = 'new';
+            $chunk->save();
+            $this->src->deleteImport($chunk->chunk_id);
+        }
+        $this->info('Deleted %d chunks from DB in %.2f seconds', $chunks->count(), microtime(true) - $start);
+        return $this;
+    }
+
+    /**
+     * @param Chunk $chunk
+     *
+     * @return $this
+     */
+    protected function fetchChunk($chunk)
+    {
+        $start = microtime(true);
+        $chunk->fetch_status = 'in_progress';
+        $chunk->fetched_at = null;
+        $chunk->save();
+        $chunk->fetch_status = $this->src->fetch($chunk->chunk_id) ? 'finished' : 'failed';
+        $chunk->fetched_at = now();
+        $chunk->save();
+        $this->debug('Fetched chunk %s in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
+        return $this;
+    }
+
+    /**
+     * @param Chunk $chunk
+     *
+     * @return $this
+     */
+    protected function importChunk($chunk)
+    {
+        if ($chunk->fetch_status !== 'finished') {
+            if ($chunk->fetch_status === 'new') {
+                $this->fetchChunk($chunk);
+            } else {
+                throw new Exception('Cannot import. Fetch is in progress');
+            }
+        }
+        $start = microtime(true);
+        $chunk->import_status = 'in_progress';
+        $chunk->imported_at = null;
+        $chunk->save();
+        // Delete existing data.
+        $this->src->deleteImport($chunk->chunk_id);
+        $chunk->import_status = $this->src->import($chunk->chunk_id) ? 'finished' : 'failed';
+        $chunk->imported_at = now();
+        $chunk->save();
+        $this->debug('Imported chunk %s in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
+        return $this;
+    }
+
+    /**
+     * @param array $chunkIds
+     * @return Collection
+     */
+    protected function getChunkModels($chunkIds)
+    {
+        $chunks = Chunk::where('sink_id', $this->src->id)->whereIn('id', $chunkIds)->get();
+        if ($chunks->count() !== count($chunkIds)) {
+            throw new Exception('Mismatch between requested and actual chunks');
+        }
+        return $chunks;
     }
 
     /**

@@ -26,5 +26,7 @@ Route::resource('sink/{sinkId}/chunk', ChunkController::class)->except(['destroy
 Route::controller(ChunkController::class)->group(function () {
     Route::get('sink/{sinkId}/chunk', 'index');
     Route::post('sink/{sinkId}/chunk/fetch', 'fetch');
+    Route::post('sink/{sinkId}/chunk/import', 'import');
     Route::post('sink/{sinkId}/chunk/destroy', 'destroy');
+    Route::post('sink/{sinkId}/chunk/deleteImport', 'deleteImport');
 });

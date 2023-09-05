@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
 use App\Jobs\FetchChunks;
+use App\Jobs\ImportChunks;
 use App\Jobs\RemoveChunks;
+use App\Jobs\DeleteImportedChunks;
 use App\Models\Chunk;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * @SuppressWarnings(PHPMD.UnusedFormalParameter)
@@ -25,12 +28,42 @@ class ChunkController extends Controller
 
     /**
      * Fetch chunks to local storage.
+     *
+     * @param Request $request
+     * @param string $sinkId
+     *
+     * @return Response
      */
     public function fetch(Request $request, $sinkId)
     {
-        $chunkIds = (array) $request->input('ids');
-        FetchChunks::dispatch($sinkId, $chunkIds);
+        FetchChunks::dispatch($sinkId, (array) $request->input('ids'));
         return response(['message' => 'Fetch job dispatched', 'status' => true]);
+    }
+
+    /**
+     * Import chunks to DB
+     *
+     * @param Request $request
+     * @param string $sinkId
+     *
+     * @return Response
+     */
+    public function import(Request $request, $sinkId)
+    {
+        ImportChunks::dispatch($sinkId, (array) $request->input('ids'));
+        return response(['message' => 'Import job dispatched', 'status' => true]);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $sinkId
+     *
+     * @return Response
+     */
+    public function deleteImport(Request $request, $sinkId)
+    {
+        DeleteImportedChunks::dispatch($sinkId, (array) $request->input('ids'));
+        return response(['message' => 'Deletion of import job dispatched', 'status' => true]);
     }
 
     /**
