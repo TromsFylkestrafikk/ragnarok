@@ -108,6 +108,7 @@ function confirmImportDeletion(chunkId) {
  * Delete imported data from DB for given chunk
  */
 function deleteSelectionImport() {
+    setSelectionState('import_status', 'pending');
     axios.post(`/api/sink/${props.sink.id}/chunk/deleteImport`, { ids: selection.value.sort() });
 }
 

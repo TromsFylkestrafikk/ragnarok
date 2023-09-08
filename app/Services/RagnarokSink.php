@@ -144,9 +144,11 @@ class RagnarokSink
         foreach ($chunks as $chunk) {
             /** @var Chunk $chunk */
             $chunk->imported_at = null;
-            $chunk->import_status = 'new';
+            $chunk->import_status = 'in_progress';
             $chunk->save();
             $this->src->deleteImport($chunk->chunk_id);
+            $chunk->import_status = 'new';
+            $chunk->save();
         }
         $this->info('Deleted %d chunks from DB in %.2f seconds', $chunks->count(), microtime(true) - $start);
         return $this;
@@ -177,12 +179,16 @@ class RagnarokSink
      */
     protected function importChunk($chunk)
     {
+        if ($chunk->fetch_status === 'in_progress') {
+            $this->error('Cannot import chunk \'%s\'. Fetch is in progress.', $chunk->chunk_id);
+            return $this;
+        }
         if ($chunk->fetch_status !== 'finished') {
-            if ($chunk->fetch_status === 'new') {
-                $this->fetchChunk($chunk);
-            } else {
-                throw new Exception('Cannot import. Fetch is in progress');
-            }
+            $this->fetchChunk($chunk);
+        }
+        if ($chunk->import_status === 'in_progress') {
+            $this->error('Cannot import chunk \'%s\'. Import already in progress', $chunk->chunk_id);
+            return $this;
         }
         $start = microtime(true);
         $chunk->import_status = 'in_progress';
@@ -193,7 +199,7 @@ class RagnarokSink
         $chunk->import_status = $this->src->import($chunk->chunk_id) ? 'finished' : 'failed';
         $chunk->imported_at = now();
         $chunk->save();
-        $this->debug('Imported chunk %s in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
+        $this->debug('Imported chunk \'%s\' in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
         return $this;
     }
 
