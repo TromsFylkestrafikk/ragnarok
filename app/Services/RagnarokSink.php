@@ -2,20 +2,10 @@
 
 namespace App\Services;
 
-use App\Jobs\DeleteImportedChunk;
-use App\Jobs\FetchChunk;
-use App\Jobs\ImportChunk;
-use App\Jobs\RemoveChunk;
 use App\Models\SinkImport;
 use App\Models\Chunk;
-use Exception;
-use Illuminate\Bus\Batch;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 use TromsFylkestrafikk\RagnarokSink\Sinks\SinkBase;
 use TromsFylkestrafikk\RagnarokSink\Traits\LogPrintf;
 
@@ -26,7 +16,7 @@ class RagnarokSink
     /**
      * Cache available chunks for this many seconds.
      */
-    const CHUNK_CACHE_EXPIRE = 60 * 60;
+    public const CHUNK_CACHE_EXPIRE = 60 * 60;
 
     public function __construct(public SinkBase $src)
     {
@@ -55,22 +45,6 @@ class RagnarokSink
     }
 
     /**
-     * Get the models for given chunk IDs.
-     *
-     * @param int[] $chunkIds The model ID of chunks.
-     *
-     * @return Collection
-     */
-    public function getChunkModels($chunkIds): Collection
-    {
-        $chunks = Chunk::where('sink_id', $this->src->id)->whereIn('id', $chunkIds)->get();
-        if ($chunks->count() !== count($chunkIds)) {
-            throw new Exception(sprintf('Mismatch between requested (%d) and actual chunks (%d)', count($chunkIds), $chunks->count()));
-        }
-        return $chunks;
-    }
-
-    /**
      * @param int $itemsPerPage
      * @param null|array $orderBy
      *
@@ -85,31 +59,6 @@ class RagnarokSink
             $baseQuery->orderBy($orderBy['key'], $orderBy['order']);
         }
         return $baseQuery->orderBy('chunk_id', 'desc')->paginate($itemsPerPage)->items();
-    }
-
-    /**
-     * Fetch numerous chunks in bulk through batched jobs.
-     *
-     * @param int[] $ids
-     *
-     * @return string|null
-     */
-    public function fetchChunks($ids): string|null
-    {
-        $chunkCount = count($ids);
-        $jobs = $this->makeBatchJobs(FetchChunk::class, $ids);
-        if (!count($jobs)) {
-            $this->notice('No chunks to fetch');
-            return null;
-        }
-        // The batch is serialized. No use of $this in callbacks.
-        $batch = Bus::batch($jobs)->name('Fetch chunks')->then(function (Batch $batch) use ($chunkCount) {
-            Log::info(sprintf('[%s]: Successfully retrieved %d chunks from sink. (Batch %s)', $batch->name, $chunkCount, $batch->id));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
-        $this->info("[%s]: Initiated batch fetching of %d chunks from sink .. (Batch %s).", $batch->name, $chunkCount, $batch->id);
-        return $batch->id;
     }
 
     /**
@@ -132,41 +81,6 @@ class RagnarokSink
     }
 
     /**
-     * Remove chunks from stage 1 storage.
-     *
-     * @param int[] $ids
-     *
-     * @return string|null
-     */
-    public function removeChunks($ids): string|null
-    {
-        $start = microtime(true);
-        $jobs = $this->makeBatchJobs(RemoveChunk::class, $ids);
-        if (!$jobs) {
-            $this->notice("Found no chunks to delete");
-            return null;
-        }
-        $batch = Bus::batch($jobs)->name('Delete chunks')->then(function (Batch $batch) use ($start) {
-            Log::info(sprintf(
-                '[%s]: Deleted %d chunks in %.2f seconds. Batch ID: %s',
-                $batch->name,
-                $batch->totalJobs,
-                microtime(true) - $start,
-                $batch->id
-            ));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf("[%s]: Batch %s: %s", $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
-        $this->info(
-            "[%s]: Initiated batch deleting %d chunks of retrieved data. Batch ID: %s",
-            $batch->name,
-            $batch->totalJobs,
-            $batch->id
-        );
-        return $batch->id;
-    }
-
-    /**
      * @param Chunk $chunk
      * @return $this
      */
@@ -178,30 +92,6 @@ class RagnarokSink
         $this->src->removeChunk($chunk->chunk_id);
         $this->info("Removed retrieved stage 1 data for chunk '%s'", $chunk->chunk_id);
         return $this;
-    }
-
-    /**
-     * Fetch numerous chunks in bulk through batched jobs.
-     *
-     * @param int[] $ids
-     *
-     * @return string|null
-     */
-    public function importChunks($ids): string|null
-    {
-        $chunkCount = count($ids);
-        $jobs = $this->makeBatchJobs(ImportChunk::class, $ids);
-        if (!count($jobs)) {
-            $this->notice('No chunks to import');
-            return null;
-        }
-        $batch = Bus::batch($jobs)->name('Import chunks')->then(function (Batch $batch) use ($chunkCount) {
-            Log::info(sprintf("[%s]: %d chunks successfully imported on batch ID: %s", $batch->name, $chunkCount, $batch->id));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
-        $this->info("[%s]: Batch initiated on %d chunks with batch ID: %s", $batch->name, $chunkCount, $batch->id);
-        return $batch->id;
     }
 
     /**
@@ -234,30 +124,6 @@ class RagnarokSink
         $chunk->save();
         $this->info("Imported chunk '%s' in %.2f seconds", $chunk->chunk_id, microtime(true) - $start);
         return $this;
-    }
-
-    /**
-     * Delete imported data from these chunks.
-     *
-     * @param array $ids List of chunk model IDs.
-     *
-     * @return string|null
-     */
-    public function deleteImports($ids): string|null
-    {
-        $start = microtime(true);
-        $jobs = $this->makeBatchJobs(DeleteImportedChunk::class, $ids);
-        if (!count($jobs)) {
-            $this->notice('No chunks to delete');
-            return null;
-        }
-        $batch = Bus::batch($jobs)->name('Delete imports')->then(function (Batch $batch) use ($start) {
-            Log::info(sprintf('[%s]: Deleted %d chunks from DB in %.2f seconds. Batch ID: %s', $batch->name, $batch->totalJobs, microtime(true) - $start, $batch->id));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
-        $this->info("[%s]: Batch initiated on %d chunks with batch ID: %s", $batch->name, $batch->totalJobs, $batch->id);
-        return $batch->id;
     }
 
     /**
@@ -327,23 +193,5 @@ class RagnarokSink
     protected function initCacheKey(): string
     {
         return sprintf('ragnarok-sink-%d-chunk-initialized', $this->src->id);
-    }
-
-    /**
-     * Create Batch job for these chunks.
-     *
-     * @param string $jobClass Job to work on chunks
-     * @param int[] $ids Chunk model IDs.
-     *
-     * @return array
-     */
-    protected function makeBatchJobs($jobClass, $ids): array
-    {
-        $jobs = [];
-        foreach ($this->getChunkModels($ids) as $chunk) {
-            /** @var Chunk $chunk  */
-            $jobs[] = new $jobClass($chunk->id);
-        };
-        return $jobs;
     }
 }

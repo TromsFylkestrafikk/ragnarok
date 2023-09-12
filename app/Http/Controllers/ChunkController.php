@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
+use App\Services\ChunkDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -36,8 +37,11 @@ class ChunkController extends Controller
      */
     public function fetch(Request $request, $sinkId): Response
     {
-        $batchId = Ragnarok::getSink($sinkId)->fetchChunks($request->input('ids'));
-        return response(['message' => 'Fetch jobs dispatched', 'status' => true, 'batchId' => $batchId]);
+        return response([
+            'message' => 'Fetch jobs dispatched',
+            'status' => true,
+            'batchId' => (new ChunkDispatcher($sinkId))->fetchChunks($request->input('ids')),
+        ]);
     }
 
     /**
@@ -50,8 +54,11 @@ class ChunkController extends Controller
      */
     public function import(Request $request, $sinkId): Response
     {
-        $batchId = Ragnarok::getSink($sinkId)->importChunks($request->input('ids'));
-        return response(['message' => 'Import jobs dispatched', 'status' => true, 'batchId' => $batchId]);
+        return response([
+            'message' => 'Import jobs dispatched',
+            'status' => true,
+            'batchId' => (new ChunkDispatcher($sinkId))->importChunks($request->input('ids')),
+        ]);
     }
 
     /**
@@ -62,8 +69,11 @@ class ChunkController extends Controller
      */
     public function deleteImport(Request $request, $sinkId): Response
     {
-        $batchId = Ragnarok::getSink($sinkId)->deleteImports($request->input('ids'));
-        return response(['message' => 'Deletion of import job dispatched', 'status' => true, 'batchId' => $batchId]);
+        return response([
+            'message' => 'Deletion of import job dispatched',
+            'status' => true,
+            'batchId' => (new ChunkDispatcher($sinkId))->deleteImports($request->input('ids')),
+        ]);
     }
 
     /**
@@ -87,7 +97,10 @@ class ChunkController extends Controller
      */
     public function destroy(Request $request, string $sinkId): Response
     {
-        $batchId = Ragnarok::getSink($sinkId)->removeChunks($request->input('ids'));
-        return response(['message' => 'Chunks removal job dispatched', 'status' => true, 'batchId' => $batchId]);
+        return response([
+            'message' => 'Chunks removal job dispatched',
+            'status' => true,
+            'batchId' => (new ChunkDispatcher($sinkId))->removeChunks($request->input('ids')),
+        ]);
     }
 }
