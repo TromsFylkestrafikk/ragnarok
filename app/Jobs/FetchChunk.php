@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Facades\Ragnarok;
-use App\Models\Chunk;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,8 +11,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Chunk;
 
-class ImportChunk implements ShouldQueue
+class FetchChunk implements ShouldQueue
 {
     use Batchable;
     use Dispatchable;
@@ -24,9 +24,9 @@ class ImportChunk implements ShouldQueue
     /**
      * Create a new job instance.
      *
-     * @param int $modelId Model ID of chunk to import
+     * @param int $modelId Model ID of chunk to fetch data for
      */
-    public function __construct(public int $modelId)
+    public function __construct(protected int $modelId)
     {
         $this->onQueue('data');
     }
@@ -36,14 +36,11 @@ class ImportChunk implements ShouldQueue
      */
     public function handle(): void
     {
-        if ($this->batch()->cancelled()) {
-            return;
-        }
         $chunk = Chunk::find($this->modelId);
         if (!$chunk) {
             return;
         }
-        Ragnarok::getSink($chunk->sink_id)->importChunk($chunk);
+        Ragnarok::getSink($chunk->sink_id)->fetchChunk($chunk);
     }
 
     /**
@@ -52,7 +49,7 @@ class ImportChunk implements ShouldQueue
     public function middleware(): array
     {
         return [
-            new WithoutOverlapping(sprintf('chunk-import-%d', $this->modelId)),
+            (new WithoutOverlapping(sprintf('chunk-fetch-%d', $this->modelId)))->dontRelease(),
             new SkipIfBatchCancelled(),
         ];
     }

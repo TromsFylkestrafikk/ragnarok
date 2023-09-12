@@ -35,7 +35,6 @@ class ImportController extends Controller
         }
         $import = SinkImport::create($request->all());
         $import->refresh();
-        ImportChunk::dispatch($import);
         return $import;
     }
 

@@ -13,7 +13,7 @@ use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
 use Illuminate\Queue\SerializesModels;
 
-class ImportChunk implements ShouldQueue
+class DeleteImportedChunk implements ShouldQueue
 {
     use Batchable;
     use Dispatchable;
@@ -24,11 +24,11 @@ class ImportChunk implements ShouldQueue
     /**
      * Create a new job instance.
      *
-     * @param int $modelId Model ID of chunk to import
+     * @param int $modelId ID of chunk model to delete imported data for
      */
     public function __construct(public int $modelId)
     {
-        $this->onQueue('data');
+        //
     }
 
     /**
@@ -36,14 +36,11 @@ class ImportChunk implements ShouldQueue
      */
     public function handle(): void
     {
-        if ($this->batch()->cancelled()) {
-            return;
-        }
         $chunk = Chunk::find($this->modelId);
         if (!$chunk) {
             return;
         }
-        Ragnarok::getSink($chunk->sink_id)->importChunk($chunk);
+        Ragnarok::getSink($chunk->sink_id)->deleteImport($chunk);
     }
 
     /**
@@ -52,7 +49,7 @@ class ImportChunk implements ShouldQueue
     public function middleware(): array
     {
         return [
-            new WithoutOverlapping(sprintf('chunk-import-%d', $this->modelId)),
+            (new WithoutOverlapping(sprintf('chunk-%d-del-imported', $this->modelId)))->dontRelease(),
             new SkipIfBatchCancelled(),
         ];
     }
