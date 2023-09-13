@@ -6,8 +6,9 @@ use App\Models\SinkImport;
 use App\Models\Chunk;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
-use TromsFylkestrafikk\RagnarokSink\Sinks\SinkBase;
-use TromsFylkestrafikk\RagnarokSink\Traits\LogPrintf;
+use Ragnarok\Sink\Sinks\SinkBase;
+use Ragnarok\Sink\Traits\LogPrintf;
+use Throwable;
 
 class RagnarokSink
 {

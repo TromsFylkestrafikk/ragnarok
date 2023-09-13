@@ -6,6 +6,3 @@ parameters:
     - ./app
     - ./tests
   checkMissingIterableValueType: false
-  ignoreErrors:
-    - '#Call to an undefined method App\\Http\\Controllers\\[a-zA-Z0-9\\_]+::(debug|info|notice|warning|error|critical|alert|emergency)\(\)#'
-    - '#Relation ''[a-zA-Z0-9_]+'' is not found in TromsFylkestrafikk\\Netex\\Models#'

@@ -12,8 +12,8 @@ use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
+use Ragnarok\Sink\Traits\LogPrintf;
 use Throwable;
-use TromsFylkestrafikk\RagnarokSink\Traits\LogPrintf;
 
 /**
  * Operations on chunks as batches.

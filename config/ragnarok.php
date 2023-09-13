@@ -2,7 +2,7 @@
 
 return [
     'sinks' => [
-        \TromsFylkestrafikk\RagnarokConsat\Sinks\SinkConsat::class,
-        \TromsFylkestrafikk\RagnarokRuter\Sinks\SinkRuter::class,
+        \Ragnarok\Consat\Sinks\SinkConsat::class,
+        \Ragnarok\Ruter\Sinks\SinkRuter::class,
     ],
 ];

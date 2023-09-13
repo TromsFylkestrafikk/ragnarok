@@ -1,8 +1,8 @@
 {
-    "name": "laravel/laravel",
+    "name": "ragnarok/ragnarok",
     "type": "project",
-    "description": "The Laravel Framework.",
-    "keywords": ["framework", "laravel"],
+    "description": "Data import front-end.",
+    "keywords": ["data-lake", "front-end"],
     "license": "MIT",
     "require": {
         "php": "^8.1",
@@ -15,9 +15,9 @@
         "pusher/pusher-php-server": "^7.2",
         "spatie/laravel-permission": "^5.9",
         "tightenco/ziggy": "^1.0",
-        "tromsfylkestrafikk/ragnarok-consat": "dev-main",
-        "tromsfylkestrafikk/ragnarok-ruter": "dev-main",
-        "tromsfylkestrafikk/ragnarok-sink": "dev-main"
+        "ragnarok/consat": "dev-main",
+        "ragnarok/sink": "dev-main",
+        "ragnarok/ruter": "dev-main"
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^2.13",
