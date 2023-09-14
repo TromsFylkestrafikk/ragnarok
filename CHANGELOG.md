@@ -12,6 +12,8 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Fetch UI and API (stage 1 import) from sinks.
 - UI and API for CRUD management of users.
 - Batched queue jobs of fetch, import and deletion of such from sinks.
+- Scheduled imports of all sinks with the ability for sinks to
+  customize their cron entry.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.

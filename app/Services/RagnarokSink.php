@@ -5,14 +5,19 @@ namespace App\Services;
 use App\Models\SinkImport;
 use App\Models\Chunk;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Ragnarok\Sink\Sinks\SinkBase;
 use Ragnarok\Sink\Traits\LogPrintf;
-use Throwable;
 
 class RagnarokSink
 {
     use LogPrintf;
+
+    /**
+     * @var ChunkDispatcher
+     */
+    protected $dispatcher = null;
 
     /**
      * Cache available chunks for this many seconds.
@@ -51,15 +56,69 @@ class RagnarokSink
      *
      * @return array
      */
-    public function getChunks($itemsPerPage = 20, $orderBy = null): array
+    public function paginatedChunks($itemsPerPage = 20, $orderBy = null): array
     {
-        $this->initChunks();
-        /** @var Builder $baseQuery */
-        $baseQuery = Chunk::where('sink_id', $this->src->id);
+        $baseQuery = $this->getChunksBuilder()->reorder();
         if (!empty($orderBy)) {
             $baseQuery->orderBy($orderBy['key'], $orderBy['order']);
         }
         return $baseQuery->orderBy('chunk_id', 'desc')->paginate($itemsPerPage)->items();
+    }
+
+    /**
+     * Import newest chunks.
+     *
+     * @return $this
+     */
+    public function importNewChunks(): RagnarokSink
+    {
+        $this->debug('Looking for new chunks to import ...');
+        $this->getChunkDispatcher()->importChunks($this->getNewChunks()->pluck('id')->toArray());
+        return $this;
+    }
+
+    /**
+     * Get the newest un-imported chunks.
+     *
+     * This will get the newest chunks that is yet un-imported.  Searching is
+     * terminated when a non-new chunk is found.
+     *
+     * @param int $scanCount Limit of chunks to scan.
+     *
+     * @return Collection
+     */
+    public function getNewChunks($scanCount = 20): Collection
+    {
+        $stillNew = true;
+        return $this->getChunksBuilder()->take($scanCount)->get()->filter(function ($chunk) use (&$stillNew) {
+            /** @var Chunk $chunk */
+            $stillNew = $stillNew && $chunk->import_status === 'new';
+            return $stillNew;
+        });
+    }
+
+    /**
+     * Get the base chunk model builder for this sink.
+     *
+     * @return Builder
+     */
+    public function getChunksBuilder(): Builder
+    {
+        $this->initChunks();
+        return Chunk::where('sink_id', $this->src->id)->orderBy('chunk_id', 'desc');
+    }
+
+    /**
+     * Get the sink's service for dispatching data jobs.
+     *
+     * @return ChunkDispatcher
+     */
+    public function getChunkDispatcher(): ChunkDispatcher
+    {
+        if ($this->dispatcher === null) {
+            $this->dispatcher = new ChunkDispatcher($this->src->id);
+        }
+        return $this->dispatcher;
     }
 
     /**

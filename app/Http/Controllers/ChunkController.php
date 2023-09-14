@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
+use App\Facades\Updater;
 use App\Services\ChunkDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -24,7 +25,7 @@ class ChunkController extends Controller
     {
         $itemsPerPage = $request->query('itemsPerPage') ?: 20;
         $orderBy = $request->query('sortBy') ? $request->query('sortBy')[0] : null;
-        return Ragnarok::getSink($sinkId)->getChunks($itemsPerPage, $orderBy);
+        return Ragnarok::getSink($sinkId)->paginatedChunks($itemsPerPage, $orderBy);
     }
 
     /**
