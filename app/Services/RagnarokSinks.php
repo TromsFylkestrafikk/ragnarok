@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Collection;
+use Illuminate\Console\Scheduling\Schedule;
 
 /**
  * Service for operating on sinks
@@ -41,14 +42,27 @@ class RagnarokSinks
     }
 
     /**
-     * @return Collection
+     * Setup scheduled tasks for sink imports.
      */
-    public function getSinksJson(): Collection
+    public function schedule(Schedule $schedule): RagnarokSinks
     {
-        return $this->getSinks()->map(fn ($sink) => [
-            'id' => $sink->src->id,
-            'title' => $sink->src->title,
-            'lastImport' => $sink->lastImport(),
-        ])->values();
+        $this->getSinks()->each(function (RagnarokSink $sink) use ($schedule) {
+            $importEvent = $schedule->call([$sink, 'importNewChunks']);
+            if ($sink->src->cron) {
+                $importEvent->cron($sink->src->cron);
+            } else {
+                $importEvent->dailyAt('10:35');
+            }
+        });
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function updateAll(): RagnarokSinks
+    {
+        $this->getSinks()->each(fn ($sink) => /** @var RagnarokSink $sink */ $sink->importNewChunks());
+        return $this;
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Console;
 
-use App\Facades\Updater;
+use App\Facades\Ragnarok;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -13,7 +13,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        Updater::schedule($schedule);
+        Ragnarok::schedule($schedule);
         $schedule->command('queue:prune-batches --hours=48')->daily();
     }
 

@@ -10,7 +10,6 @@ class AppServiceProvider extends ServiceProvider
 {
     public $singletons = [
         RagnarokSinks::class => RagnarokSinks::class,
-        Updater::class => Updater::class,
     ];
 
     /**

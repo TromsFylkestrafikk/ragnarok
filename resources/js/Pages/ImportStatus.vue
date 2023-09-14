@@ -63,6 +63,9 @@ onMounted(() => {
         <Link :href="`/sink/${item.value}`">
           {{ item.raw.title }}
         </Link>
+        <v-chip v-if="item.raw.newChunks > 0" color="blue" class="ml-2">
+          {{ item.raw.newChunks }} new
+        </v-chip>
       </template>
       <template #item.actions="{ item }">
         <v-btn icon flat @click="importSingle(item.value)">
