@@ -100,7 +100,7 @@ class ChunkDispatcher
     public function importChunks($ids): string|null
     {
         $chunkCount = count($ids);
-        $jobs = $this->makeBatchJobs(ImportChunk::class, $ids);
+        $jobs = $this->makeImportBatchJobs($ids);
         $start = microtime(true);
         if (!count($jobs)) {
             $this->notice('No chunks to import');
@@ -108,7 +108,7 @@ class ChunkDispatcher
         }
         $batch = Bus::batch($jobs)->name('Import chunks')->then(function (Batch $batch) use ($start) {
             Log::info(sprintf(
-                "[%s]: %d chunks successfully imported in %.2f seconds. Batch ID: %s",
+                "[%s]: %d fetch + import jobs successfully executed in %.2f seconds. Batch ID: %s",
                 $batch->name,
                 $batch->totalJobs,
                 microtime(true) - $start,
@@ -161,6 +161,30 @@ class ChunkDispatcher
             $jobs[] = new $jobClass($chunk->id);
         };
         return $jobs;
+    }
+
+    /**
+     * Add import jobs ready for batched operation.
+     *
+     * Where chunks aren't yet fetched, chain the fetch job before the actual
+     * import job.
+     *
+     * @param int[] $ids
+     *
+     * @return mixed[]
+     */
+    protected function makeImportBatchJobs($ids): array
+    {
+        return Chunk::whereIn('id', $ids)->get()->reduce(function (?array $jobs, Chunk $chunk) {
+            if ($chunk->fetch_status == 'in_progress' || $chunk->import_status === 'in_progress') {
+                return $jobs;
+            }
+            $jobs[] = $chunk->fetch_status !== 'finished' ? [
+                new FetchChunk($chunk->id),
+                new ImportChunk($chunk->id),
+            ] : new ImportChunk($chunk->id);
+            return $jobs;
+        }, []);
     }
 
     /**

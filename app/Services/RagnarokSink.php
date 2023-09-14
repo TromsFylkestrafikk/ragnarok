@@ -162,12 +162,9 @@ class RagnarokSink
     public function importChunk($chunk): RagnarokSink
     {
         $this->debug("Importing chunk '%s' ...", $chunk->chunk_id);
-        if ($chunk->fetch_status === 'in_progress') {
-            $this->error("Cannot import chunk '%s'. Fetch is in progress.", $chunk->chunk_id);
-            return $this;
-        }
         if ($chunk->fetch_status !== 'finished') {
-            $this->fetchChunk($chunk);
+            $this->error('Chunk not properly fetched from source yet.');
+            return $this;
         }
         if ($chunk->import_status === 'in_progress') {
             $this->error("Cannot import chunk '%s'. Import already in progress", $chunk->chunk_id);
