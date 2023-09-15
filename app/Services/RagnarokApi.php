@@ -8,7 +8,7 @@ use Illuminate\Console\Scheduling\Schedule;
 /**
  * Service for operating on sinks
  */
-class RagnarokSinks
+class RagnarokApi
 {
     /**
      * @var Collection $sinks
@@ -44,14 +44,14 @@ class RagnarokSinks
     /**
      * Setup scheduled tasks for sink imports.
      */
-    public function schedule(Schedule $schedule): RagnarokSinks
+    public function schedule(Schedule $schedule): RagnarokApi
     {
         $this->getSinks()->each(function (RagnarokSink $sink) use ($schedule) {
             $importEvent = $schedule->call([$sink, 'importNewChunks']);
             if ($sink->src->cron) {
                 $importEvent->cron($sink->src->cron);
             } else {
-                $importEvent->dailyAt('10:35');
+                $importEvent->dailyAt('05:00');
             }
         });
         return $this;
@@ -60,7 +60,7 @@ class RagnarokSinks
     /**
      * @return $this
      */
-    public function updateAll(): RagnarokSinks
+    public function updateAll(): RagnarokApi
     {
         $this->getSinks()->each(fn ($sink) => /** @var RagnarokSink $sink */ $sink->importNewChunks());
         return $this;

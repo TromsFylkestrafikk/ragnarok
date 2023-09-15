@@ -249,6 +249,6 @@ class RagnarokSink
      */
     protected function initCacheKey(): string
     {
-        return sprintf('ragnarok-sink-%d-chunk-initialized', $this->src->id);
+        return sprintf('ragnarok-sink-%s-chunk-initialized', $this->src->id);
     }
 }

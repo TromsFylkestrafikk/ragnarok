@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
-use App\Facades\Updater;
 use App\Services\ChunkDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;

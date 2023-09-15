@@ -2,14 +2,13 @@
 
 namespace App\Providers;
 
-use App\Services\RagnarokSinks;
-use App\Services\Updater;
+use App\Services\RagnarokApi;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     public $singletons = [
-        RagnarokSinks::class => RagnarokSinks::class,
+        RagnarokApi::class => RagnarokApi::class,
     ];
 
     /**
