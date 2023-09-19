@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Console\Scheduling\Schedule;
+use Ragnarok\Sink\Facades\SinkRegistrar;
 
 /**
  * Service for operating on sinks
@@ -24,7 +25,7 @@ class RagnarokApi
             return $this->sinks;
         }
         $sinks = [];
-        foreach (config('ragnarok.sinks') as $sinkClass) {
+        foreach (SinkRegistrar::getSinkClasses() as $sinkClass) {
             $sinks[] = new RagnarokSink(new $sinkClass());
         }
         $this->sinks = collect($sinks)->keyBy(fn ($sink) => $sink->src->id);
