@@ -17,19 +17,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('ragnarok_imports', function (Blueprint $table) {
-            $table->id()->comment('Sink import ID');
-            $table->char('sink_id', 255)->comment('Sink this import belongs to');
-            $table->timestamp('started_at')->nullable()->comment('When import from sink started');
-            $table->timestamp('finished_at')->nullable()->comment('When import from sink finished');
-            $table->enum('status', [
-                'new',
-                'importing',
-                'failed',
-                'finished',
-            ])->default('new')->comment('Import status');
-        });
-
         Schema::create('ragnarok_chunks', function (Blueprint $table) {
             $table->id()->comment('Chunk ID');
             $table->char('chunk_id', 64)->comment('Chunk id as given by source');
@@ -61,7 +48,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('ragnarok_sinks');
-        Schema::dropIfExists('ragnarok_imports');
         Schema::dropIfExists('ragnarok_chunks');
     }
 };
