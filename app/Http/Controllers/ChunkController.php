@@ -45,6 +45,18 @@ class ChunkController extends Controller
     }
 
     /**
+     * Remove the specified resource from storage.
+     */
+    public function deleteFetched(Request $request, string $sinkId): Response
+    {
+        return response([
+            'message' => 'Chunks removal job dispatched',
+            'status' => true,
+            'batchId' => (new ChunkDispatcher($sinkId))->removeChunks($request->input('ids')),
+        ]);
+    }
+
+    /**
      * Import chunks to DB
      *
      * @param Request $request
@@ -67,40 +79,12 @@ class ChunkController extends Controller
      *
      * @return Response
      */
-    public function deleteImport(Request $request, $sinkId): Response
+    public function deleteImported(Request $request, $sinkId): Response
     {
         return response([
             'message' => 'Deletion of import job dispatched',
             'status' => true,
             'batchId' => (new ChunkDispatcher($sinkId))->deleteImports($request->input('ids')),
-        ]);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $chunkId)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $chunkId)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Request $request, string $sinkId): Response
-    {
-        return response([
-            'message' => 'Chunks removal job dispatched',
-            'status' => true,
-            'batchId' => (new ChunkDispatcher($sinkId))->removeChunks($request->input('ids')),
         ]);
     }
 }

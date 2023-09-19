@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\ChunkController;
-use App\Http\Controllers\ImportController;
+use App\Http\Controllers\SinkApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,13 +20,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::resource('sink', ImportController::class)->only(['store', 'show', 'update', 'destroy']);
-Route::resource('sink/{sinkId}/chunk', ChunkController::class)->except(['destroy', 'store']);
+Route::resource('sink', SinkApiController::class)->only(['index', 'show', 'update']);
 
 Route::controller(ChunkController::class)->group(function () {
     Route::get('sink/{sinkId}/chunk', 'index');
     Route::post('sink/{sinkId}/chunk/fetch', 'fetch');
+    Route::post('sink/{sinkId}/chunk/deleteFetched', 'deleteFetched');
     Route::post('sink/{sinkId}/chunk/import', 'import');
-    Route::post('sink/{sinkId}/chunk/destroy', 'destroy');
-    Route::post('sink/{sinkId}/chunk/deleteImport', 'deleteImport');
+    Route::post('sink/{sinkId}/chunk/deleteImported', 'deleteImported');
 });

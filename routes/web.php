@@ -23,7 +23,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::resource('account', UserAccountController::class)->except(['create', 'edit']);
-    Route::resource('sink', SinkController::class)->only(['index', 'show', 'update']);
+    Route::resource('sink', SinkController::class)->only(['index', 'show']);
     Route::get('/', [SinkController::class, 'index'])->name('home');
 
     Route::get('user.accounts', function () {

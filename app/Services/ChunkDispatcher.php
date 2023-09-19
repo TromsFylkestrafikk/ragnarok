@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\ImportsFinished;
 use App\Jobs\DeleteImportedChunk;
 use App\Jobs\FetchChunk;
 use App\Jobs\ImportChunk;
@@ -50,7 +51,7 @@ class ChunkDispatcher
             Log::info(sprintf('[%s]: Successfully retrieved %d chunks from sink. (Batch %s)', $batch->name, $chunkCount, $batch->id));
         })->catch(function (Batch $batch, Throwable $except) {
             Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
+        })->allowFailures()->onQueue('data')->dispatch();
         $this->info("[%s]: Initiated batch fetching of %d chunks from sink .. (Batch %s).", $batch->name, $chunkCount, $batch->id);
         return $batch->id;
     }
@@ -80,7 +81,7 @@ class ChunkDispatcher
             ));
         })->catch(function (Batch $batch, Throwable $except) {
             Log::error(sprintf("[%s]: Batch %s: %s", $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
+        })->allowFailures()->onQueue('data')->dispatch();
         $this->info(
             "[%s]: Initiated batch deleting %d chunks of retrieved data. Batch ID: %s",
             $batch->name,
@@ -116,7 +117,9 @@ class ChunkDispatcher
             ));
         })->catch(function (Batch $batch, Throwable $except) {
             Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
+        })->finally(function (Batch $batch) {
+            ImportsFinished::dispatch($this->sinkId, $batch->id, $batch->totalJobs, $batch->failedJobs);
+        })->allowFailures()->onQueue('data')->dispatch();
         $this->info("[%s]: Batch initiated on %d chunks with batch ID: %s", $batch->name, $chunkCount, $batch->id);
         return $batch->id;
     }
@@ -140,7 +143,7 @@ class ChunkDispatcher
             Log::info(sprintf('[%s]: Deleted %d chunks from DB in %.2f seconds. Batch ID: %s', $batch->name, $batch->totalJobs, microtime(true) - $start, $batch->id));
         })->catch(function (Batch $batch, Throwable $except) {
             Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->onQueue('data')->dispatch();
+        })->allowFailures()->onQueue('data')->dispatch();
         $this->info("[%s]: Batch initiated on %d chunks with batch ID: %s", $batch->name, $batch->totalJobs, $batch->id);
         return $batch->id;
     }

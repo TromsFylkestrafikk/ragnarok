@@ -29,17 +29,30 @@ class RagnarokSink
         $this->logPrintfInit("[Sink %s]: ", $src->id);
     }
 
-    public function lastImport(): SinkImport|null
+    /**
+     * Get the most recent attempted chunk import.
+     *
+     * I.e. accept both successfully imported and failed attempts.
+     *
+     * @return Chunk|null
+     */
+    public function lastImportedChunk(): Chunk|null
     {
-        return SinkImport::where('sink_id', $this->src->id)->orderBy('started_at', 'desc')->first();
+        /** @var Chunk|null */
+        return $this->getChunksBuilder()
+            ->reorder()
+            ->whereIn('import_status', ['finished', 'failed'])
+            ->orderBy('imported_at', 'desc')
+            ->take(1)
+            ->first();
     }
 
     /**
-     * Get the state of a single sink
+     * Get self as a client side representation.
      *
-     * @return mixed[]
+     * @return array
      */
-    public function getState(): array
+    public function asClientSide()
     {
         return [
             'id' => $this->src->id,
@@ -47,6 +60,8 @@ class RagnarokSink
             'fromDate' => $this->src->getFromDate(),
             'toDate' => $this->src->getToDate(),
             'chunksCount' => $this->src->chunksCount(),
+            'newChunks' => $this->getNewChunks()->count(),
+            'lastImport' => $this->lastImportedChunk(),
         ];
     }
 
@@ -68,13 +83,11 @@ class RagnarokSink
     /**
      * Import newest chunks.
      *
-     * @return $this
+     * @return string|null
      */
-    public function importNewChunks(): RagnarokSink
+    public function importNewChunks(): string|null
     {
-        $this->debug('Looking for new chunks to import ...');
-        $this->getChunkDispatcher()->importChunks($this->getNewChunks()->pluck('id')->toArray());
-        return $this;
+        return $this->getChunkDispatcher()->importChunks($this->getNewChunks()->pluck('id')->toArray());
     }
 
     /**

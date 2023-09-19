@@ -1,6 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import useStatus from '@/composables/chunks';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { forEach } from 'lodash';
 import dayjs from 'dayjs';
@@ -25,13 +26,7 @@ const itemsKeyed = computed(() => {
     return ret;
 });
 const selection = ref([]);
-const statusColor = ref({
-    new: 'blue',
-    pending: 'grey',
-    in_progress: 'orange',
-    finished: 'green',
-    failed: 'red',
-});
+const { statusColor } = useStatus();
 
 const confDiags = reactive({ rmChunks: false, rmChunk: false, delImports: false, delImport: false });
 
@@ -83,7 +78,7 @@ function confirmChunkDeletion(chunkId) {
 
 function deleteChunk(chunkId) {
     itemsKeyed.value[chunkId].fetch_status = 'pending';
-    axios.post(`/api/sink/${props.sink.id}/chunk/destroy`, { ids: [chunkId] });
+    axios.post(`/api/sink/${props.sink.id}/chunk/deleteFetched`, { ids: [chunkId] });
 }
 
 /**
@@ -91,12 +86,12 @@ function deleteChunk(chunkId) {
  */
 function deleteSelectionOfChunks() {
     setSelectionState('fetch_status', 'pending');
-    axios.post(`/api/sink/${props.sink.id}/chunk/destroy`, { ids: selection.value.sort() });
+    axios.post(`/api/sink/${props.sink.id}/chunk/deleteFetched`, { ids: selection.value.sort() });
 }
 
 function deleteChunkImport(chunkId) {
     itemsKeyed.value[chunkId].import_status = 'pending';
-    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImport`, { ids: [chunkId] });
+    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImported`, { ids: [chunkId] });
 }
 
 function confirmImportDeletion(chunkId) {
@@ -109,7 +104,7 @@ function confirmImportDeletion(chunkId) {
  */
 function deleteSelectionImport() {
     setSelectionState('import_status', 'pending');
-    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImport`, { ids: selection.value.sort() });
+    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImported`, { ids: selection.value.sort() });
 }
 
 function resetSelection() {

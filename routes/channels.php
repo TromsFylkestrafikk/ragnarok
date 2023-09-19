@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -25,4 +26,8 @@ Broadcast::channel('App.Models.SinkImport', function ($user) {
 Broadcast::channel('App.Models.Chunk', function ($user) {
     // return $user->hasDirectPermission('read sources');
     return true;
+});
+
+Broadcast::channel('sinks', function (User $user) {
+    return $user->can('read sources');
 });

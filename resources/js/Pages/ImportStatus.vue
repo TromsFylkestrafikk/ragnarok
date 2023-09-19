@@ -1,6 +1,9 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import useStatus from '@/composables/chunks';
 import { Link } from '@inertiajs/vue3';
+import axios from 'axios';
+import { assign } from 'lodash';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -9,12 +12,12 @@ const props = defineProps({
 
 const headers = ref([
     { title: 'Source', key: 'id' },
-    { title: 'Last import', key: 'lastImport.started_at' },
-    { title: 'Last import status', key: 'lastImport.status' },
-    { key: 'actions' },
+    { title: 'Latest imported chunk', key: 'lastImport.chunk_id' },
+    { title: 'Imported at', key: 'lastImport.imported_at' },
+    { key: 'actions', sortable: false },
 ]);
 const page = ref(1);
-const ajaxing = ref(false);
+const { statusColor } = useStatus();
 
 const sinksKeyed = computed(() => {
     const ret = {};
@@ -22,27 +25,33 @@ const sinksKeyed = computed(() => {
     return ret;
 });
 
-function naIfEmpty(item, key) {
-    return item.columns[key] || 'N/A';
+const sinkIsBusy = ref({});
+
+const canImport = computed(() => {
+    const ret = {};
+    props.sinks.forEach((sink) => {
+        ret[sink.id] = sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
+    });
+    return ret;
+});
+
+function importNew(sinkId) {
+    sinkIsBusy.value[sinkId] = true;
+    return axios.patch(`api/sink/${sinkId}`);
 }
 
-function importSingle(sinkId) {
-    ajaxing.value = true;
-    axios.post(
-        'api/sink',
-        { sink_id: sinkId }
-    ).then((result) => {
-        sinksKeyed.value[sinkId].lastImport = result.data;
-    }).catch((error) => {
-        console.warn(error.response.data);
-    }).finally(() => ajaxing.value = false);
+function refreshSink(sinkId) {
+    return axios.get(`api/sink/${sinkId}`).then((result) => {
+        // We cannot replace props. Update the individual sink properties directly.
+        assign(sinksKeyed.value[result.data.id], result.data);
+    });
 }
 
 onMounted(() => {
-    Echo.private('App.Models.SinkImport').listen('.SinkImportUpdated', (event) => {
-        const sinkImport = event.model;
-        sinksKeyed.value[sinkImport.sink_id].lastImport = sinkImport;
-    });
+    Echo.private('sinks').listen(
+        'ImportsFinished',
+        (event) => refreshSink(event.sinkId).then(sinkIsBusy.value[event.sinkId] = false)
+    );
 });
 
 </script>
@@ -56,9 +65,6 @@ onMounted(() => {
       item-value="id"
       no-filter
     >
-      <template #item.lastImport.status="{ item }">
-        {{ naIfEmpty(item, 'lastImport.status') }}
-      </template>
       <template #item.id="{ item }">
         <Link :href="`/sink/${item.value}`">
           {{ item.raw.title }}
@@ -67,13 +73,25 @@ onMounted(() => {
           {{ item.raw.newChunks }} new
         </v-chip>
       </template>
+      <template #item.lastImport.chunk_id="{ item }">
+        {{ item.columns['lastImport.chunk_id'] }}
+        <v-chip :color="statusColor[item.raw.lastImport.import_status]">
+          {{ item.raw.lastImport.import_status }}
+        </v-chip>
+      </template>
       <template #item.actions="{ item }">
-        <v-btn icon flat @click="importSingle(item.value)">
+        <v-btn
+          v-if="canImport[item.columns.id]"
+          icon
+          flat
+          @click="importNew(item.value)"
+        >
           <v-icon icon="mdi-import" />
           <v-tooltip activator="parent">
-            Import
+            Import new chunks
           </v-tooltip>
         </v-btn>
+        <v-progress-circular v-if="sinkIsBusy[item.value]" indeterminate />
       </template>
       <template #bottom>
         <div class="text-center pt-2">

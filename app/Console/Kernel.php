@@ -14,7 +14,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         Ragnarok::schedule($schedule);
-        $schedule->command('queue:prune-batches --hours=48')->daily();
+        $schedule->command('queue:prune-batches --hours=48 --unfinished=72 --cancelled=72')->daily();
     }
 
     /**
