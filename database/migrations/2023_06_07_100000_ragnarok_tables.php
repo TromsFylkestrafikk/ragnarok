@@ -12,15 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ragnarok_sinks', function (Blueprint $table) {
-            $table->id();
-            $table->char('name', 255)->comment('Computer readable name of sink');
+            $table->char('id', 64)->primary()->comment('Unique sink ID');
+            $table->char('title', 255)->comment('Title/name of sink for presentation');
+            $table->string('impl_class')->comment('Implementation of \Ragnarok\Sink\Sinks\SinkBase');
             $table->timestamps();
         });
 
         Schema::create('ragnarok_chunks', function (Blueprint $table) {
             $table->id()->comment('Chunk ID');
             $table->char('chunk_id', 64)->comment('Chunk id as given by source');
-            $table->char('sink_id', 255);
+            $table->char('sink_id', 64);
             $table->bigInteger('records')->default(0)->comment('Number of records imported');
             $table->bigInteger('import_id')->nullable()->comment('Import this chunk belongs to');
             $table->enum('fetch_status', [

@@ -40,7 +40,7 @@ class FetchChunk implements ShouldQueue
         if (!$chunk) {
             return;
         }
-        Ragnarok::getSink($chunk->sink_id)->fetchChunk($chunk);
+        Ragnarok::getSinkHandler($chunk->sink_id)->fetchChunk($chunk);
     }
 
     /**

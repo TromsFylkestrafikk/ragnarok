@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Facades\Ragnarok;
-use App\Services\RagnarokSink;
-use Illuminate\Support\Facades\Gate;
+use App\Http\Resources\SinkCollection;
+use App\Http\Resources\SinkResource;
+use App\Models\Sink;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 /**
@@ -12,24 +13,24 @@ use Inertia\Inertia;
  */
 class SinkController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('sinks');
+    }
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render('ImportStatus', [
-            'sinks' => Ragnarok::getSinks()->map(fn (RagnarokSink $sink) => $sink->asClientSide())->values(),
-        ]);
+        return Inertia::render('ImportStatus', ['sinks' => (new SinkCollection(Sink::all()))->toArray($request)]);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $sinkId)
+    public function show(Request $request, Sink $sink)
     {
-        if (!Gate::allows('read sources')) {
-            abort(403);
-        }
-        return Inertia::render('SinkStatus', ['sink' => Ragnarok::getSink($sinkId)->asClientSide()]);
+        return Inertia::render('SinkStatus', ['sink' => (new SinkResource($sink))->toArray($request)]);
     }
 }

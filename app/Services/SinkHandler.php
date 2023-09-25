@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\SinkImport;
+use App\Models\Sink;
 use App\Models\Chunk;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -10,9 +10,17 @@ use Illuminate\Support\Facades\Cache;
 use Ragnarok\Sink\Sinks\SinkBase;
 use Ragnarok\Sink\Traits\LogPrintf;
 
-class RagnarokSink
+/**
+ * Wrapper around sink model and is associated SinkBase implementation.
+ */
+class SinkHandler
 {
     use LogPrintf;
+
+    /**
+     * @var SinkBase
+     */
+    public $src;
 
     /**
      * @var ChunkDispatcher
@@ -24,60 +32,10 @@ class RagnarokSink
      */
     public const CHUNK_CACHE_EXPIRE = 60 * 60;
 
-    public function __construct(public SinkBase $src)
+    public function __construct(public Sink $sink)
     {
-        $this->logPrintfInit("[Sink %s]: ", $src->id);
-    }
-
-    /**
-     * Get the most recent attempted chunk import.
-     *
-     * I.e. accept both successfully imported and failed attempts.
-     *
-     * @return Chunk|null
-     */
-    public function lastImportedChunk(): Chunk|null
-    {
-        /** @var Chunk|null */
-        return $this->getChunksBuilder()
-            ->reorder()
-            ->whereIn('import_status', ['finished', 'failed'])
-            ->orderBy('imported_at', 'desc')
-            ->take(1)
-            ->first();
-    }
-
-    /**
-     * Get self as a client side representation.
-     *
-     * @return array
-     */
-    public function asClientSide()
-    {
-        return [
-            'id' => $this->src->id,
-            'title' => $this->src->title,
-            'fromDate' => $this->src->getFromDate(),
-            'toDate' => $this->src->getToDate(),
-            'chunksCount' => $this->src->chunksCount(),
-            'newChunks' => $this->getNewChunks()->count(),
-            'lastImport' => $this->lastImportedChunk(),
-        ];
-    }
-
-    /**
-     * @param int $itemsPerPage
-     * @param null|array $orderBy
-     *
-     * @return array
-     */
-    public function paginatedChunks($itemsPerPage = 20, $orderBy = null): array
-    {
-        $baseQuery = $this->getChunksBuilder()->reorder();
-        if (!empty($orderBy)) {
-            $baseQuery->orderBy($orderBy['key'], $orderBy['order']);
-        }
-        return $baseQuery->orderBy('chunk_id', 'desc')->paginate($itemsPerPage)->items();
+        $this->src = new ($sink->impl_class)();
+        $this->logPrintfInit("[Sink %s]: ", $this->sink->id);
     }
 
     /**
@@ -118,7 +76,7 @@ class RagnarokSink
     public function getChunksBuilder(): Builder
     {
         $this->initChunks();
-        return Chunk::where('sink_id', $this->src->id)->orderBy('chunk_id', 'desc');
+        return Chunk::where('sink_id', $this->sink->id)->orderBy('chunk_id', 'desc');
     }
 
     /**
@@ -129,7 +87,7 @@ class RagnarokSink
     public function getChunkDispatcher(): ChunkDispatcher
     {
         if ($this->dispatcher === null) {
-            $this->dispatcher = new ChunkDispatcher($this->src->id);
+            $this->dispatcher = new ChunkDispatcher($this->sink->id);
         }
         return $this->dispatcher;
     }
@@ -139,7 +97,7 @@ class RagnarokSink
      *
      * @return $this
      */
-    public function fetchChunk($chunk): RagnarokSink
+    public function fetchChunk($chunk): SinkHandler
     {
         $this->debug("Fetching chunk '%s' ...", $chunk->chunk_id);
         $start = microtime(true);
@@ -157,7 +115,7 @@ class RagnarokSink
      * @param Chunk $chunk
      * @return $this
      */
-    public function removeChunk($chunk): RagnarokSink
+    public function removeChunk($chunk): SinkHandler
     {
         $chunk->fetched_at = null;
         $chunk->fetch_status = 'new';
@@ -172,7 +130,7 @@ class RagnarokSink
      *
      * @return $this
      */
-    public function importChunk($chunk): RagnarokSink
+    public function importChunk($chunk): SinkHandler
     {
         $this->debug("Importing chunk '%s' ...", $chunk->chunk_id);
         if ($chunk->fetch_status !== 'finished') {
@@ -203,7 +161,7 @@ class RagnarokSink
      *
      * @return $this
      */
-    public function deleteImport(Chunk $chunk): RagnarokSink
+    public function deleteImport(Chunk $chunk): SinkHandler
     {
         $start = microtime(true);
         $chunk->imported_at = null;
@@ -221,7 +179,7 @@ class RagnarokSink
      *
      * @return $this
      */
-    protected function initChunks(): RagnarokSink
+    protected function initChunks(): SinkHandler
     {
         if (Cache::get($this->initCacheKey())) {
             return $this;
@@ -231,7 +189,7 @@ class RagnarokSink
         foreach ($newIds as $chunkId) {
             $records[] = [
                 'chunk_id' => $chunkId,
-                'sink_id' => $this->src->id,
+                'sink_id' => $this->sink->id,
             ];
         }
         if (count($records)) {
@@ -250,7 +208,7 @@ class RagnarokSink
     {
         $ids = $this->src->getChunkIds();
         $existing = Chunk::select(['chunk_id'])
-            ->where('sink_id', $this->src->id)
+            ->where('sink_id', $this->sink->id)
             ->orderBy('chunk_id')
             ->pluck('chunk_id')
             ->toArray();
@@ -262,6 +220,6 @@ class RagnarokSink
      */
     protected function initCacheKey(): string
     {
-        return sprintf('ragnarok-sink-%s-chunk-initialized', $this->src->id);
+        return sprintf('ragnarok-sink-%s-chunk-initialized', $this->sink->id);
     }
 }

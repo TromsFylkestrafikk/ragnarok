@@ -43,7 +43,7 @@ class ImportChunk implements ShouldQueue
         if (!$chunk) {
             return;
         }
-        Ragnarok::getSink($chunk->sink_id)->importChunk($chunk);
+        Ragnarok::getSinkHandler($chunk->sink_id)->importChunk($chunk);
     }
 
     /**

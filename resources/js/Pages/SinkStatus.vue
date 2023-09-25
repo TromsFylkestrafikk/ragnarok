@@ -35,7 +35,7 @@ async function loadItems({ page, itemsPerPage, sortBy }) {
     const state = await axios
         .get(`/api/sink/${props.sink.id}/chunk`, { params: { page, itemsPerPage, sortBy } })
         .finally(() => loading.value = false);
-    items.value = state.data;
+    items.value = state.data.chunks;
 }
 
 function prettyDate(dateStr) {
@@ -144,7 +144,7 @@ onMounted(() => {
       :headers="headers"
       :items-length="sink.chunksCount"
       :items="items"
-      items-per-page="20"
+      items-per-page="10"
       :loading="loading"
       :search="''"
       show-select

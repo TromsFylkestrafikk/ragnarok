@@ -34,11 +34,11 @@ class RemoveChunk implements ShouldQueue
      */
     public function handle(): void
     {
-        /** @var Chunk|null $chunk */
+        /** @var Chunk|null */
         $chunk = Chunk::find($this->modelId);
         if (!$chunk) {
             return;
         }
-        Ragnarok::getSink($chunk->sink_id)->removeChunk($chunk);
+        Ragnarok::getSinkHandler($chunk->sink_id)->removeChunk($chunk);
     }
 }

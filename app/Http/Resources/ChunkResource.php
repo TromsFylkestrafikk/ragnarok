@@ -1,15 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Http\Resources;
 
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Database\Eloquent\BroadcastsEvents;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * App\Models\Chunk
+ * App\Http\Resources\ChunkResource
  *
  * @property int $id Chunk ID
  * @property string $chunk_id Chunk id as given by source
@@ -35,38 +32,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereRecords($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereSinkId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-class Chunk extends Model
+class ChunkResource extends JsonResource
 {
-    use BroadcastsEvents;
-    use HasFactory;
-
-    public $incrementing = false;
-    protected $table = 'ragnarok_chunks';
-    protected $keyType = 'string';
-
-    protected $fillable = [
-        'id',
-        'chunk_id',
-        'sink_id',
-        'records',
-        'fetch_status',
-        'fetched_at',
-        'import_status',
-        'imported_at',
-    ];
-
-    public function sink(): BelongsTo
-    {
-        return $this->belongsTo(Sink::class);
-    }
-
-    public function broadcastOn(string $event): PrivateChannel|array
-    {
-        return match ($event) {
-            'updated' => new PrivateChannel('App.Models.Chunk'),
-            default => [],
-        };
-    }
+    public static $wrap = 'sink';
 }

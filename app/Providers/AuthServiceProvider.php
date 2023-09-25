@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
-use App\Models\SinkImport;
 use App\Models\User;
-use App\Policies\SinkImportPolicy;
+use App\Models\Sink;
 use App\Policies\UserPolicy;
+use App\Policies\SinkPolicy;
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -18,7 +18,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         User::class => UserPolicy::class,
-        // SinkImport::class => SinkImportPolicy::class,
+        Sink::class => SinkPolicy::class,
     ];
 
     /**

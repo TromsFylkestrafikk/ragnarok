@@ -40,7 +40,7 @@ class DeleteImportedChunk implements ShouldQueue
         if (!$chunk) {
             return;
         }
-        Ragnarok::getSink($chunk->sink_id)->deleteImport($chunk);
+        Ragnarok::getSinkHandler($chunk->sink_id)->deleteImport($chunk);
     }
 
     /**

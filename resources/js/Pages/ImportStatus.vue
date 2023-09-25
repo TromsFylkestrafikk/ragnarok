@@ -3,33 +3,34 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import useStatus from '@/composables/chunks';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
-import { assign } from 'lodash';
+import { assign, forEach, reduce } from 'lodash';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
-    sinks: { type: Array, required: true },
+    sinks: { type: Object, required: true },
 });
 
 const headers = ref([
     { title: 'Source', key: 'id' },
-    { title: 'Latest imported chunk', key: 'lastImport.chunk_id' },
-    { title: 'Imported at', key: 'lastImport.imported_at' },
+    { title: 'Chunks', key: 'chunksCount' },
+    { title: 'Not imported', key: 'chunksNewCount' },
+    { title: 'Failed', key: 'chunksFailedCount' },
+    { title: 'Latest imported chunk', key: 'lastImportedChunk.chunk_id' },
     { key: 'actions', sortable: false },
 ]);
 const page = ref(1);
 const { statusColor } = useStatus();
 
-const sinksKeyed = computed(() => {
-    const ret = {};
-    props.sinks.forEach((sink) => ret[sink.id] = sink);
+const sinksArray = computed(() => reduce(props.sinks, (ret, sink) => {
+    ret.push(sink);
     return ret;
-});
+}, []));
 
 const sinkIsBusy = ref({});
 
 const canImport = computed(() => {
     const ret = {};
-    props.sinks.forEach((sink) => {
+    forEach(props.sinks, (sink) => {
         ret[sink.id] = sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
     });
     return ret;
@@ -37,13 +38,14 @@ const canImport = computed(() => {
 
 function importNew(sinkId) {
     sinkIsBusy.value[sinkId] = true;
-    return axios.patch(`api/sink/${sinkId}`);
+    return axios.patch(`/api/sink/${sinkId}`);
 }
 
-function refreshSink(sinkId) {
-    return axios.get(`api/sink/${sinkId}`).then((result) => {
-        // We cannot replace props. Update the individual sink properties directly.
-        assign(sinksKeyed.value[result.data.id], result.data);
+async function refreshSink(sinkId) {
+    return axios.get(`/api/sink/${sinkId}`).then((result) => {
+        // We cannot replace props. Update the individual sink properties
+        // directly.
+        assign(props.sinks[result.data.sink.id], result.data.sink);
     });
 }
 
@@ -60,7 +62,7 @@ onMounted(() => {
   <app-layout title="Import status">
     <v-data-table
       :headers="headers"
-      :items="sinks"
+      :items="sinksArray"
       items-per-page="100"
       item-value="id"
       no-filter
@@ -73,10 +75,13 @@ onMounted(() => {
           {{ item.raw.newChunks }} new
         </v-chip>
       </template>
-      <template #item.lastImport.chunk_id="{ item }">
-        {{ item.columns['lastImport.chunk_id'] }}
-        <v-chip :color="statusColor[item.raw.lastImport.import_status]">
-          {{ item.raw.lastImport.import_status }}
+      <template #item.lastImportedChunk.chunk_id="{ item }">
+        {{ item.columns['lastImportedChunk.chunk_id'] }}
+        <v-chip :color="statusColor[item.raw.lastImportedChunk.import_status]">
+          {{ item.raw.lastImportedChunk.import_status }}
+          <v-tooltip activator="parent">
+            Imported at {{ item.raw.lastImportedChunk.imported_at }}
+          </v-tooltip>
         </v-chip>
       </template>
       <template #item.actions="{ item }">

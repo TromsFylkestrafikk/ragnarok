@@ -3,36 +3,42 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
-use App\Services\RagnarokSink;
-use Illuminate\Http\Request;
+use App\Http\Resources\SinkCollection;
+use App\Http\Resources\SinkResource;
+use App\Models\Sink;
 
 class SinkApiController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('sinks');
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return Ragnarok::getSinks()->map(fn (RagnarokSink $sink) => $sink->asClientSide())->values();
+        return new SinkCollection(Sink::all());
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $sinkId)
+    public function show(Sink $sink)
     {
-        return Ragnarok::getSink($sinkId)->asClientSide();
+        return new SinkResource($sink);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(string $sinkId)
+    public function update(Sink $sink)
     {
         return response([
             'message' => 'Import job dispatched',
             'status' => true,
-            'batchId' => Ragnarok::getSink($sinkId)->importNewChunks(),
+            'batchId' => Ragnarok::getSinkHandler($sink->id)->importNewChunks(),
         ]);
     }
 }
