@@ -2,8 +2,14 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import useStatus from '@/composables/chunks';
-import { computed, onMounted, reactive, ref } from 'vue';
-import { forEach } from 'lodash';
+import {
+    computed,
+    onMounted,
+    reactive,
+    ref,
+    watch,
+} from 'vue';
+import { forEach, debounce } from 'lodash';
 import dayjs from 'dayjs';
 
 const props = defineProps({
@@ -25,7 +31,28 @@ const itemsKeyed = computed(() => {
     });
     return ret;
 });
+const searchDummy = ref(null);
 const selection = ref([]);
+const filterChunkId = ref(null);
+const filterFetchStatus = ref(null);
+const filterImportStatus = ref(null);
+const selectStates = ref([
+    { value: 'new', title: 'New' },
+    { value: 'in_progress', title: 'In progress' },
+    { value: 'finished', title: 'Finished' },
+    { value: 'failed', title: 'Failed' },
+]);
+
+const filterChunkIdInput = debounce((val) => filterChunkId.value = val, 600);
+
+const filterParams = computed(() => ({
+    id: filterChunkId.value,
+    fetch_status: filterFetchStatus.value,
+    import_status: filterImportStatus.value,
+}));
+
+watch(filterParams, () => searchDummy.value = String(Date.now()));
+
 const { statusColor } = useStatus();
 
 const confDiags = reactive({ rmChunks: false, rmChunk: false, delImports: false, delImport: false });
@@ -33,7 +60,16 @@ const confDiags = reactive({ rmChunks: false, rmChunk: false, delImports: false,
 async function loadItems({ page, itemsPerPage, sortBy }) {
     loading.value = true;
     const state = await axios
-        .get(`/api/sink/${props.sink.id}/chunk`, { params: { page, itemsPerPage, sortBy } })
+        .get(`/api/sink/${props.sink.id}/chunk`, {
+            params: {
+                page,
+                itemsPerPage,
+                sortBy,
+                chunk_id: filterChunkId.value,
+                fetch_status: filterFetchStatus.value,
+                import_status: filterImportStatus.value,
+            },
+        })
         .finally(() => loading.value = false);
     items.value = state.data.chunks;
 }
@@ -109,6 +145,9 @@ function deleteSelectionImport() {
 
 function resetSelection() {
     selection.value = [];
+    filterChunkId.value = null;
+    filterFetchStatus.value = null;
+    filterImportStatus.value = null;
 }
 
 function updateChunk(src, dest) {
@@ -146,7 +185,7 @@ onMounted(() => {
       :items="items"
       items-per-page="10"
       :loading="loading"
-      :search="''"
+      :search="searchDummy"
       show-select
       @update:options="loadItems"
     >
@@ -160,7 +199,7 @@ onMounted(() => {
           <v-btn icon variant="plain" @click="resetSelection()">
             <v-icon icon="mdi-select-remove" />
             <v-tooltip activator="parent" location="top">
-              Remove selection on all pages
+              Clear all selections and filters
             </v-tooltip>
           </v-btn>
           <v-btn icon variant="plain" @click="fetchSelection()">
@@ -195,6 +234,36 @@ onMounted(() => {
             </confirm-dialog>
           </v-btn>
         </v-toolbar>
+      </template>
+      <template #thead>
+        <tr>
+          <td />
+          <td>
+            <v-text-field
+              :model-value="filterChunkId"
+              append-inner-icon="mdi-magnify"
+              class="mr-4 mt-2"
+              clearable
+              @update:model-value="filterChunkIdInput"
+            />
+          </td>
+          <td>
+            <v-select
+              v-model="filterFetchStatus"
+              class="mr-4 mt-2"
+              :items="selectStates"
+              clearable
+            />
+          </td>
+          <td>
+            <v-select
+              v-model="filterImportStatus"
+              class="mr-4 mt-2"
+              :items="selectStates"
+              clearable
+            />
+          </td>
+        </tr>
       </template>
       <template #item.fetch_status="{ item }">
         <v-chip :color="statusColor[item.columns.fetch_status]">

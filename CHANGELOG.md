@@ -14,6 +14,8 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Batched queue jobs of fetch, import and deletion of such from sinks.
 - Scheduled imports of all sinks with the ability for sinks to
   customize their cron entry.
+- Sinks can now be searched/filtered based on ID and import/fetch
+  status.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.

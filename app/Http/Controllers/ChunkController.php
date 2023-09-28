@@ -6,9 +6,9 @@ use App\Models\Sink;
 use App\Http\Resources\ChunkCollection;
 use App\Services\ChunkDispatcher;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 
 /**
  * @SuppressWarnings(PHPMD.UnusedFormalParameter)
@@ -24,10 +24,21 @@ class ChunkController extends Controller
      */
     public function index(Request $request, Sink $sink): ChunkCollection
     {
+        $request->validate([
+            'fetch_status' => [Rule::in(['new', 'in_progress', 'finished', 'failed'])],
+            'import_status' => [Rule::in(['new', 'in_progress', 'finished', 'failed'])],
+        ]);
         $perPage = $request->input('itemsPerPage') ?: null;
         $sortBy = $request->input('sortBy') ?: null;
         /** @var Builder */
         $query = $sink->chunks();
+        foreach ($request->only(['chunk_id', 'fetch_status', 'import_status']) as $key => $value) {
+            if ($key === 'chunk_id') {
+                $query->where('chunk_id', 'LIKE', "%{$value}%");
+            } else {
+                $query->where($key, $value);
+            }
+        }
         if ($sortBy) {
             $query->orderBy($sortBy[0]['key'], $sortBy[0]['order']);
         }
