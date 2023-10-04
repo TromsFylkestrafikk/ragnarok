@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sink;
 use App\Http\Resources\ChunkCollection;
+use App\Http\Helpers\ChunksFilter;
+use App\Models\Sink;
+use App\Models\Chunk;
 use App\Services\ChunkDispatcher;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
@@ -15,6 +16,8 @@ use Illuminate\Validation\Rule;
  */
 class ChunkController extends Controller
 {
+    use ChunksFilter;
+
     /**
      * Display a listing of the resource.
      *
@@ -28,81 +31,33 @@ class ChunkController extends Controller
             'fetch_status' => [Rule::in(['new', 'in_progress', 'finished', 'failed'])],
             'import_status' => [Rule::in(['new', 'in_progress', 'finished', 'failed'])],
         ]);
+        $query = $this->applyFilters($request->input(), $sink->chunks());
         $perPage = $request->input('itemsPerPage') ?: null;
         $sortBy = $request->input('sortBy') ?: null;
-        /** @var Builder */
-        $query = $sink->chunks();
-        foreach ($request->only(['chunk_id', 'fetch_status', 'import_status']) as $key => $value) {
-            if ($key === 'chunk_id') {
-                $query->where('chunk_id', 'LIKE', "%{$value}%");
-            } else {
-                $query->where($key, $value);
-            }
-        }
         if ($sortBy) {
             $query->orderBy($sortBy[0]['key'], $sortBy[0]['order']);
         }
         return new ChunkCollection($query->orderBy('chunk_id', 'desc')->paginate($perPage));
     }
 
-    /**
-     * Fetch chunks to local storage.
-     *
-     * @param Request $request
-     * @param Sink $sink
-     *
-     * @return Response
-     */
-    public function fetch(Request $request, Sink $sink): Response
+    public function update(Request $request, Sink $sink, Chunk $chunk): Response
     {
-        return response([
-            'message' => 'Fetch jobs dispatched',
-            'status' => true,
-            'batchId' => (new ChunkDispatcher($sink->id))->fetchChunks($request->input('ids')),
+        $request->validate([
+            'operation' => [
+                'required',
+                Rule::in(['fetch', 'import', 'deleteFetched', 'deleteImported']),
+            ],
+            'forceFetch' => 'boolean',
+            'forceImport' => 'boolean',
         ]);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function deleteFetched(Request $request, Sink $sink): Response
-    {
+        $operation = $request->input('operation');
         return response([
-            'message' => 'Chunks removal job dispatched',
+            'message' => "$operation job dispatched",
             'status' => true,
-            'batchId' => (new ChunkDispatcher($sink->id))->removeChunks($request->input('ids')),
-        ]);
-    }
-
-    /**
-     * Import chunks to DB
-     *
-     * @param Request $request
-     * @param Sink $sink
-     *
-     * @return Response
-     */
-    public function import(Request $request, Sink $sink): Response
-    {
-        return response([
-            'message' => 'Import jobs dispatched',
-            'status' => true,
-            'batchId' => (new ChunkDispatcher($sink->id))->importChunks($request->input('ids')),
-        ]);
-    }
-
-    /**
-     * @param Request $request
-     * @param Sink $sink
-     *
-     * @return Response
-     */
-    public function deleteImported(Request $request, Sink $sink): Response
-    {
-        return response([
-            'message' => 'Deletion of import job dispatched',
-            'status' => true,
-            'batchId' => (new ChunkDispatcher($sink->id))->deleteImports($request->input('ids')),
+            'batchId' => (new ChunkDispatcher($sink->id))
+                ->setForceFetch($request->input('forceFetch'))
+                ->setForceImport($request->input('forceImport'))
+                ->{$operation}([$chunk->id]),
         ]);
     }
 }

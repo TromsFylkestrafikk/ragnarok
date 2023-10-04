@@ -45,7 +45,7 @@ class SinkHandler
      */
     public function importNewChunks(): string|null
     {
-        return $this->getChunkDispatcher()->importChunks($this->getNewChunks()->pluck('id')->toArray());
+        return $this->getChunkDispatcher()->import($this->getNewChunks()->pluck('id')->toArray());
     }
 
     /**

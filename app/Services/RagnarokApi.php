@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Sink;
 use Illuminate\Support\Collection;
 use Illuminate\Console\Scheduling\Schedule;
-use Ragnarok\Sink\Facades\SinkRegistrar;
 
 /**
  * Service for operating on sinks

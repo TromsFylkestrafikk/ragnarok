@@ -16,7 +16,9 @@ const props = defineProps({
     sink: { type: Object, required: true },
 });
 
-const loading = ref(true);
+// -----------------------------------------------------------------------------
+// Data table entries
+// -----------------------------------------------------------------------------
 const headers = ref([
     { title: 'Chunk ID', key: 'chunk_id', sortable: true },
     { title: 'Fetch status', key: 'fetch_status', sortable: true },
@@ -24,6 +26,7 @@ const headers = ref([
 ]);
 
 const items = ref([]);
+const itemsLength = ref(0);
 const itemsKeyed = computed(() => {
     const ret = {};
     items.value.forEach((chunk) => {
@@ -31,11 +34,52 @@ const itemsKeyed = computed(() => {
     });
     return ret;
 });
-const searchDummy = ref(null);
-const selection = ref([]);
-const filterChunkId = ref(null);
-const filterFetchStatus = ref(null);
-const filterImportStatus = ref(null);
+
+// -----------------------------------------------------------------------------
+// Operation form and input selection
+// -----------------------------------------------------------------------------
+const operationItems = ref([
+    { value: 'fetch', title: 'Fetch from sink' },
+    { value: 'deleteFetched', title: 'Delete fetched' },
+    { value: 'import', title: 'Import to DB' },
+    { value: 'deleteImported', title: 'Delete imported' },
+]);
+
+const execParams = reactive({
+    selection: [],
+    operation: null,
+    forceFetch: false,
+    forceImport: false,
+    targetSet: 'selection',
+});
+
+const selectionCount = computed(() => (execParams.targetSet === 'selection' ? execParams.selection.length : itemsLength.value));
+
+const execForm = ref(null);
+const execRules = reactive({
+    operation: [(value) => !!value || 'Please select an operation'],
+    targetSet: [
+        (value) => ((value === 'selection' && selectionCount.value === 0)
+            ? 'Cannot perform operation on empty selection'
+            : true),
+        (value) => !!value || 'Please select a target',
+    ],
+});
+
+const showOp = ref(false);
+const showSelectCheckboxes = computed(() => showOp.value && execParams.targetSet === 'selection');
+
+function resetOperationForm() {
+    execForm.value.reset();
+    execParams.selection = [];
+    execParams.forceFetch = false;
+    execParams.forceImport = false;
+    execParams.targetSet = 'selection';
+}
+
+// -----------------------------------------------------------------------------
+// Filter form
+// -----------------------------------------------------------------------------
 const selectStates = ref([
     { value: 'new', title: 'New' },
     { value: 'in_progress', title: 'In progress' },
@@ -43,35 +87,94 @@ const selectStates = ref([
     { value: 'failed', title: 'Failed' },
 ]);
 
-const filterChunkIdInput = debounce((val) => filterChunkId.value = val, 600);
+const filterParams = reactive({
+    chunk_id: null,
+    fetch_status: null,
+    import_status: null,
+});
 
-const filterParams = computed(() => ({
-    id: filterChunkId.value,
-    fetch_status: filterFetchStatus.value,
-    import_status: filterImportStatus.value,
-}));
+const filterChunkIdInput = debounce((val) => filterParams.chunk_id = val, 600);
 
+const searchDummy = ref(null);
+
+// Reducer for triggering <v-data-table-remote :search=..> entry
 watch(filterParams, () => searchDummy.value = String(Date.now()));
+
+function clearChunkId() {
+    filterChunkIdInput(null);
+    filterChunkIdInput.flush();
+}
+
+function resetSelection() {
+    resetOperationForm();
+    clearChunkId();
+    filterParams.fetch_status = null;
+    filterParams.import_status = null;
+}
 
 const { statusColor } = useStatus();
 
-const confDiags = reactive({ rmChunks: false, rmChunk: false, delImports: false, delImport: false });
+// -----------------------------------------------------------------------------
+// Loading and operation execution!
+// -----------------------------------------------------------------------------
+const loading = ref(true);
+const ajaxing = ref(false);
 
 async function loadItems({ page, itemsPerPage, sortBy }) {
     loading.value = true;
-    const state = await axios
-        .get(`/api/sink/${props.sink.id}/chunk`, {
-            params: {
-                page,
-                itemsPerPage,
-                sortBy,
-                chunk_id: filterChunkId.value,
-                fetch_status: filterFetchStatus.value,
-                import_status: filterImportStatus.value,
-            },
-        })
-        .finally(() => loading.value = false);
+    const state = await axios.get(`/api/sinks/${props.sink.id}/chunks`, {
+        params: {
+            page,
+            itemsPerPage,
+            sortBy,
+            ...filterParams,
+        },
+    }).finally(() => loading.value = false);
     items.value = state.data.chunks;
+    itemsLength.value = state.data.meta.total;
+}
+
+function singleChunkOperation(id, operation) {
+    ajaxing.value = true;
+    return axios.patch(`/api/sinks/${props.sink.id}/chunks/${id}`, { operation }).finally(() => ajaxing.value = false);
+}
+
+async function submitChunkOperation(event) {
+    const validation = await event;
+    if (!validation.valid) {
+        return;
+    }
+    ajaxing.value = true;
+    axios.patch(`/api/sinks/${props.sink.id}`, {
+        ...filterParams,
+        ...execParams,
+    }).finally(() => {
+        ajaxing.value = false;
+        resetOperationForm();
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Confirmation dialogs
+// -----------------------------------------------------------------------------
+const confDiags = reactive({ rmChunks: false, rmChunk: false, delImports: false, delImport: false });
+const targetChunkId = ref(null);
+
+function confirmChunkDeletion(chunkId) {
+    targetChunkId.value = chunkId;
+    confDiags.rmChunk = true;
+}
+
+function confirmImportDeletion(chunkId) {
+    targetChunkId.value = chunkId;
+    confDiags.delImport = true;
+}
+
+// -----------------------------------------------------------------------------
+// Helpers.
+// -----------------------------------------------------------------------------
+function updateChunk(src, dest) {
+    forEach(src, (val, key) => dest[key] = val);
 }
 
 function prettyDate(dateStr) {
@@ -81,78 +184,10 @@ function prettyDate(dateStr) {
     return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss');
 }
 
-function setSelectionState(column, state) {
-    selection.value.forEach((chunkId) => itemsKeyed.value[chunkId] && (itemsKeyed.value[chunkId][column] = state));
-}
-
-function fetchChunk(chunkId) {
-    itemsKeyed.value[chunkId].fetch_status = 'pending';
-    axios.post(`/api/sink/${props.sink.id}/chunk/fetch`, { ids: [chunkId] });
-    // Fetch status update is done through broadcast events
-}
-
-function fetchSelection() {
-    setSelectionState('fetch_status', 'pending');
-    axios.post(`/api/sink/${props.sink.id}/chunk/fetch`, { ids: selection.value.sort() });
-}
-
-function importChunk(chunkId) {
-    itemsKeyed.value[chunkId].import_status = 'pending';
-    axios.post(`/api/sink/${props.sink.id}/chunk/import`, { ids: [chunkId] });
-}
-
-function importSelection() {
-    setSelectionState('import_status', 'pending');
-    axios.post(`/api/sink/${props.sink.id}/chunk/import`, { ids: selection.value.sort() });
-}
-
-const targetChunkId = ref(null);
-function confirmChunkDeletion(chunkId) {
-    targetChunkId.value = chunkId;
-    confDiags.rmChunk = true;
-}
-
-function deleteChunk(chunkId) {
-    itemsKeyed.value[chunkId].fetch_status = 'pending';
-    axios.post(`/api/sink/${props.sink.id}/chunk/deleteFetched`, { ids: [chunkId] });
-}
-
-/**
- * Delete stage 1 data (chunks) from selection
+/* function setSelectionState(column, state) {
+ *     execParams.selection.forEach((chunkId) => itemsKeyed.value[chunkId] && (itemsKeyed.value[chunkId][column] = state));
+ * }
  */
-function deleteSelectionOfChunks() {
-    setSelectionState('fetch_status', 'pending');
-    axios.post(`/api/sink/${props.sink.id}/chunk/deleteFetched`, { ids: selection.value.sort() });
-}
-
-function deleteChunkImport(chunkId) {
-    itemsKeyed.value[chunkId].import_status = 'pending';
-    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImported`, { ids: [chunkId] });
-}
-
-function confirmImportDeletion(chunkId) {
-    targetChunkId.value = chunkId;
-    confDiags.delImport = true;
-}
-
-/**
- * Delete imported data from DB for given chunk
- */
-function deleteSelectionImport() {
-    setSelectionState('import_status', 'pending');
-    axios.post(`/api/sink/${props.sink.id}/chunk/deleteImported`, { ids: selection.value.sort() });
-}
-
-function resetSelection() {
-    selection.value = [];
-    filterChunkId.value = null;
-    filterFetchStatus.value = null;
-    filterImportStatus.value = null;
-}
-
-function updateChunk(src, dest) {
-    forEach(src, (val, key) => dest[key] = val);
-}
 
 function findAndUpdate(newChunk) {
     const found = itemsKeyed.value[newChunk.id] || null;
@@ -162,9 +197,9 @@ function findAndUpdate(newChunk) {
 }
 
 function removeFromSelection(idToRemove) {
-    const idx = selection.value.indexOf(idToRemove);
+    const idx = execParams.selection.indexOf(idToRemove);
     if (idx !== -1) {
-        selection.value.splice(idx, 1);
+        execParams.selection.splice(idx, 1);
     }
 }
 
@@ -179,77 +214,115 @@ onMounted(() => {
 <template>
   <app-layout title="Sink status">
     <v-data-table-server
-      v-model="selection"
+      v-model="execParams.selection"
       :headers="headers"
-      :items-length="sink.chunksCount"
       :items="items"
+      :items-length="itemsLength"
       items-per-page="10"
       :loading="loading"
       :search="searchDummy"
-      show-select
+      :show-select="showSelectCheckboxes"
       @update:options="loadItems"
     >
       <template #top>
-        <v-toolbar>
-          <v-toolbar-title>{{ sink.title }}</v-toolbar-title>
-          <v-spacer />
-          <v-col class="text-grey">
-            {{ selection.length }} selected
-          </v-col>
-          <v-btn icon variant="plain" @click="resetSelection()">
-            <v-icon icon="mdi-select-remove" />
-            <v-tooltip activator="parent" location="top">
-              Clear all selections and filters
-            </v-tooltip>
-          </v-btn>
-          <v-btn icon variant="plain" @click="fetchSelection()">
-            <v-icon icon="mdi-tray-arrow-down" />
-            <v-tooltip activator="parent" location="top">
-              Stage 1: Fetch raw chunks to local storage
-            </v-tooltip>
-          </v-btn>
-          <v-btn icon variant="plain">
-            <v-icon icon="mdi-tray-remove" />
-            <v-tooltip activator="parent" location="top">
-              Stage 1: Remove selected chunks from local storage
-            </v-tooltip>
-            <confirm-dialog v-model="confDiags.rmChunks" activator="parent" @confirmed="deleteSelectionOfChunks()">
-              This will erase the raw, stage 1 data. Are you sure?
-            </confirm-dialog>
-          </v-btn>
-          <v-btn icon variant="plain" @click="importSelection()">
-            <v-icon icon="mdi-database-arrow-down" />
-            <v-tooltip activator="parent" location="top">
-              Stage 2: Import chunks to DB.
-            </v-tooltip>
-          </v-btn>
-          <v-btn icon variant="plain">
-            <v-icon icon="mdi-database-remove" />
-            <v-tooltip activator="parent" location="top">
-              Stage 2: Remove imported data from DB.
-            </v-tooltip>
-            <confirm-dialog v-model="confDiags.delImports" activator="parent" @confirmed="deleteSelectionImport()">
-              <p>This will delete the processed, imported data from database storage.</p>
-              <p>Proceed?</p>
-            </confirm-dialog>
-          </v-btn>
-        </v-toolbar>
+        <v-card color="grey-lighten-4" elevation="0">
+          <v-toolbar>
+            <v-toolbar-title>{{ sink.title }}</v-toolbar-title>
+            <v-spacer />
+            <v-col v-if="showOp" class="text-grey">
+              {{ selectionCount }} selected
+            </v-col>
+            <v-btn icon @click="showOp = !showOp">
+              <v-icon :icon="showOp ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+            </v-btn>
+            <v-btn icon variant="plain" @click="resetSelection()">
+              <v-icon icon="mdi-select-remove" />
+              <v-tooltip activator="parent" location="top">
+                Clear all selections and filters
+              </v-tooltip>
+            </v-btn>
+          </v-toolbar>
+          <v-expand-transition>
+            <v-card-text v-show="showOp">
+              <v-form
+                ref="execForm"
+                :dislabled="ajaxing"
+                validate-on="submit"
+                @submit.prevent="submitChunkOperation"
+              >
+                <v-row align="center">
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="execParams.operation"
+                      clearable
+                      label="Operation"
+                      :rules="execRules.operation"
+                      :items="operationItems"
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="6" class="text-center">
+                    <v-btn
+                      :loading="ajaxing"
+                      type="submit"
+                      color="primary"
+                      rounded="0"
+                      text="Execute!"
+                      variant="flat"
+                    />
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-radio-group
+                      v-model="execParams.targetSet"
+                      label="Perform operation on"
+                      :rules="execRules.targetSet"
+                    >
+                      <v-radio
+                        :label="`Selected chunks in filtered set (${execParams.selection.length})`"
+                        value="selection"
+                      />
+                      <v-radio :label="`Entire filtered set (${itemsLength})`" value="range" />
+                    </v-radio-group>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-switch
+                      v-show="['fetch', 'import'].includes(execParams.operation)"
+                      v-model="execParams.forceFetch"
+                      label="Force re-fetch"
+                      color="red"
+                      hide-details
+                    />
+                    <v-switch
+                      v-show="execParams.operation === 'import'"
+                      v-model="execParams.forceImport"
+                      label="Force re-import"
+                      color="red"
+                      hide-details
+                    />
+                  </v-col>
+                </v-row>
+              </v-form>
+            </v-card-text>
+          </v-expand-transition>
+        </v-card>
       </template>
       <template #thead>
         <tr>
-          <td />
+          <td v-if="showSelectCheckboxes" />
           <td>
             <v-text-field
-              :model-value="filterChunkId"
+              :model-value="filterParams.chunk_id"
               append-inner-icon="mdi-magnify"
               class="mr-4 mt-2"
               clearable
+              @click:clear="clearChunkId"
               @update:model-value="filterChunkIdInput"
             />
           </td>
           <td>
             <v-select
-              v-model="filterFetchStatus"
+              v-model="filterParams.fetch_status"
               class="mr-4 mt-2"
               :items="selectStates"
               clearable
@@ -257,7 +330,7 @@ onMounted(() => {
           </td>
           <td>
             <v-select
-              v-model="filterImportStatus"
+              v-model="filterParams.import_status"
               class="mr-4 mt-2"
               :items="selectStates"
               clearable
@@ -265,24 +338,24 @@ onMounted(() => {
           </td>
         </tr>
       </template>
-      <template #item.fetch_status="{ item }">
-        <v-chip :color="statusColor[item.columns.fetch_status]">
-          {{ item.columns.fetch_status }}
-          <v-tooltip v-if="item.raw.fetched_at" activator="parent">
-            {{ prettyDate(item.raw.fetched_at) }}
+      <template #item.fetch_status="{ item, value }">
+        <v-chip :color="statusColor[value]">
+          {{ value }}
+          <v-tooltip v-if="item.fetched_at" activator="parent">
+            {{ prettyDate(item.fetched_at) }}
           </v-tooltip>
         </v-chip>
-        <v-btn icon variant="plain" @click="fetchChunk(item.raw.id)">
+        <v-btn icon variant="plain" @click="singleChunkOperation(item.id, 'fetch')">
           <v-icon icon="mdi-tray-arrow-down" />
           <v-tooltip activator="parent">
             Stage 1: Fetch chunk to local storage from sink
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="item.raw.fetch_status !=='new'"
+          v-if="item.fetch_status !=='new'"
           icon
           variant="plain"
-          @click="confirmChunkDeletion(item.raw.id)"
+          @click="confirmChunkDeletion(item.id)"
         >
           <v-icon icon="mdi-tray-remove" />
           <v-tooltip activator="parent">
@@ -290,21 +363,21 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
       </template>
-      <template #item.import_status="{ item }">
-        <v-chip :color="statusColor[item.columns.import_status]">
-          {{ item.columns.import_status }}
+      <template #item.import_status="{ item, value }">
+        <v-chip :color="statusColor[value]">
+          {{ item.import_status }}
         </v-chip>
-        <v-btn icon variant="plain" @click="importChunk(item.raw.id)">
+        <v-btn icon variant="plain" @click="singleChunkOperation(item.id, 'import')">
           <v-icon icon="mdi-database-arrow-down" />
           <v-tooltip activator="parent">
             Stage 2: Import chunk to database
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="item.raw.import_status !== 'new'"
+          v-if="item.import_status !== 'new'"
           icon
           variant="plain"
-          @click="confirmImportDeletion(item.raw.id)"
+          @click="confirmImportDeletion(item.id)"
         >
           <v-icon icon="mdi-database-remove" />
           <v-tooltip activator="parent">
@@ -314,11 +387,11 @@ onMounted(() => {
       </template>
     </v-data-table-server>
 
-    <confirm-dialog v-model="confDiags.rmChunk" @confirmed="deleteChunk(targetChunkId)">
+    <confirm-dialog v-model="confDiags.rmChunk" @confirmed="singleChunkOperation(targetChunkId, 'deleteFetched')">
       <p>This will permamently remove local copy of raw, stage 1 data.</p>
       <p>Are you sure you want to erase it?</p>
     </confirm-dialog>
-    <confirm-dialog v-model="confDiags.delImport" @confirmed="deleteChunkImport(targetChunkId)">
+    <confirm-dialog v-model="confDiags.delImport" @confirmed="singleChunkOperation(targetChunkId, 'deleteImported')">
       <p>This will delete the processed, imported data from database storage.</p>
       <p>Proceed?</p>
     </confirm-dialog>

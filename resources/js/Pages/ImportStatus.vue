@@ -38,11 +38,11 @@ const canImport = computed(() => {
 
 function importNew(sinkId) {
     sinkIsBusy.value[sinkId] = true;
-    return axios.patch(`/api/sink/${sinkId}`);
+    return axios.patch(`/api/sinks/${sinkId}`);
 }
 
 async function refreshSink(sinkId) {
-    return axios.get(`/api/sink/${sinkId}`).then((result) => {
+    return axios.get(`/api/sinks/${sinkId}`).then((result) => {
         // We cannot replace props. Update the individual sink properties
         // directly.
         assign(props.sinks[result.data.sink.id], result.data.sink);
@@ -67,36 +67,36 @@ onMounted(() => {
       item-value="id"
       no-filter
     >
-      <template #item.id="{ item }">
-        <Link :href="`/sink/${item.value}`">
-          {{ item.raw.title }}
+      <template #item.id="{ item, value }">
+        <Link :href="`/sinks/${value}`">
+          {{ item.title }}
         </Link>
-        <v-chip v-if="item.raw.newChunks > 0" color="blue" class="ml-2">
-          {{ item.raw.newChunks }} new
+        <v-chip v-if="item.newChunks > 0" color="blue" class="ml-2">
+          {{ item.newChunks }} new
         </v-chip>
       </template>
-      <template #item.lastImportedChunk.chunk_id="{ item }">
-        {{ item.columns['lastImportedChunk.chunk_id'] }}
-        <v-chip :color="statusColor[item.raw.lastImportedChunk.import_status]">
-          {{ item.raw.lastImportedChunk.import_status }}
+      <template #item.lastImportedChunk.chunk_id="{ item, value }">
+        {{ value }}
+        <v-chip v-if="item.lastImportedChunk" :color="statusColor[item.lastImportedChunk.import_status]">
+          {{ item.lastImportedChunk.import_status }}
           <v-tooltip activator="parent">
-            Imported at {{ item.raw.lastImportedChunk.imported_at }}
+            Imported at {{ item.lastImportedChunk.imported_at }}
           </v-tooltip>
         </v-chip>
       </template>
-      <template #item.actions="{ item }">
+      <template #item.actions="{ item, value }">
         <v-btn
-          v-if="canImport[item.columns.id]"
+          v-if="canImport[item.id]"
           icon
           flat
-          @click="importNew(item.value)"
+          @click="importNew(value)"
         >
           <v-icon icon="mdi-import" />
           <v-tooltip activator="parent">
             Import new chunks
           </v-tooltip>
         </v-btn>
-        <v-progress-circular v-if="sinkIsBusy[item.value]" indeterminate />
+        <v-progress-circular v-if="sinkIsBusy[value]" indeterminate />
       </template>
       <template #bottom>
         <div class="text-center pt-2">

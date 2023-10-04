@@ -8,6 +8,7 @@ use App\Jobs\FetchChunk;
 use App\Jobs\ImportChunk;
 use App\Jobs\RemoveChunk;
 use App\Models\Chunk;
+use Closure;
 use Exception;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Collection;
@@ -21,14 +22,51 @@ use Throwable;
  *
  * Dispatch service around batch jobs for chunk operations that (may) spend a
  * long time per operation.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class ChunkDispatcher
 {
     use LogPrintf;
 
+    protected $forceImport = false;
+    protected $forceFetch = false;
+
     public function __construct(protected string $sinkId)
     {
         $this->logPrintfInit("[ChunkDispatcher %s]: ", $sinkId);
+    }
+
+    /**
+     * Force chunks to be fetched, even if they exists locally.
+     *
+     * @param bool $force
+     *
+     * @return $this
+     */
+    public function setForceFetch($force = true): ChunkDispatcher
+    {
+        if ($force) {
+            $this->debug("Forcing fetch ...");
+        }
+        $this->forceFetch = $force;
+        return $this;
+    }
+
+    /**
+     * Force chunks to be imported, even if they successfully already are.
+     *
+     * @param bool $force
+     *
+     * @return $this
+     */
+    public function setForceImport($force = true): ChunkDispatcher
+    {
+        if ($force) {
+            $this->debug("Forcing import ...");
+        }
+        $this->forceImport = $force;
+        return $this;
     }
 
     /**
@@ -38,10 +76,12 @@ class ChunkDispatcher
      *
      * @return string|null
      */
-    public function fetchChunks($ids): string|null
+    public function fetch($ids): string|null
     {
         $chunkCount = count($ids);
-        $jobs = $this->makeBatchJobs(FetchChunk::class, $ids);
+        $jobs = $this->makeBatchJobs(FetchChunk::class, $ids, $this->forceFetch
+            ? null
+            : fn(Chunk $chunk) => $chunk->fetch_status !== 'finished');
         if (!count($jobs)) {
             $this->notice('No chunks to fetch');
             return null;
@@ -63,7 +103,7 @@ class ChunkDispatcher
      *
      * @return string|null
      */
-    public function removeChunks($ids): string|null
+    public function deleteFetched($ids): string|null
     {
         $start = microtime(true);
         $jobs = $this->makeBatchJobs(RemoveChunk::class, $ids);
@@ -98,7 +138,7 @@ class ChunkDispatcher
      *
      * @return string|null
      */
-    public function importChunks($ids): string|null
+    public function import($ids): string|null
     {
         $chunkCount = count($ids);
         $jobs = $this->makeImportBatchJobs($ids);
@@ -131,7 +171,7 @@ class ChunkDispatcher
      *
      * @return string|null
      */
-    public function deleteImports($ids): string|null
+    public function deleteImported($ids): string|null
     {
         $start = microtime(true);
         $jobs = $this->makeBatchJobs(DeleteImportedChunk::class, $ids);
@@ -153,12 +193,17 @@ class ChunkDispatcher
      *
      * @param string $jobClass Job to work on chunks
      * @param int[] $ids Chunk model IDs.
+     * @param Closure $filter Filter chunk collections using this callback
      *
      * @return array
      */
-    protected function makeBatchJobs($jobClass, $ids): array
+    protected function makeBatchJobs($jobClass, $ids, Closure $filter = null): array
     {
         $jobs = [];
+        $models = $this->getChunkModels($ids);
+        if ($filter) {
+            $models->filter($filter);
+        }
         foreach ($this->getChunkModels($ids) as $chunk) {
             /** @var Chunk $chunk  */
             $jobs[] = new $jobClass($chunk->id);
@@ -178,11 +223,11 @@ class ChunkDispatcher
      */
     protected function makeImportBatchJobs($ids): array
     {
-        return Chunk::whereIn('id', $ids)->get()->reduce(function (?array $jobs, Chunk $chunk) {
-            if ($chunk->fetch_status == 'in_progress' || $chunk->import_status === 'in_progress') {
-                return $jobs;
-            }
-            $jobs[] = $chunk->fetch_status !== 'finished' ? [
+        $query = Chunk::whereIn('id', $ids)
+            ->whereNot('fetch_status', 'in_progress')
+            ->whereNotIn('import_status', $this->forceImport ? ['in_progress'] : ['in_progress', 'finished']);
+        return $query->get()->reduce(function (?array $jobs, Chunk $chunk) {
+            $jobs[] = ($this->forceFetch || $chunk->fetch_status !== 'finished') ? [
                 new FetchChunk($chunk->id),
                 new ImportChunk($chunk->id),
             ] : new ImportChunk($chunk->id);

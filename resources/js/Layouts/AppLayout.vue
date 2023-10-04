@@ -41,10 +41,14 @@ const logout = () => {
     </v-app-bar>
 
     <!-- Page Content -->
-    <v-main class="bg-grey-lighten-3">
+    <v-main>
       <v-container class="d-flex justify-center align-center">
         <Banner />
-        <slot />
+        <v-row>
+          <v-col cols="12">
+            <slot />
+          </v-col>
+        </v-row>
       </v-container>
     </v-main>
   </v-app>

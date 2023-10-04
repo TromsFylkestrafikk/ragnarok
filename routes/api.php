@@ -20,12 +20,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::resource('sink', SinkApiController::class)->only(['index', 'show', 'update']);
-
-Route::controller(ChunkController::class)->group(function () {
-    Route::get('sink/{sink}/chunk', 'index');
-    Route::post('sink/{sink}/chunk/fetch', 'fetch');
-    Route::post('sink/{sink}/chunk/deleteFetched', 'deleteFetched');
-    Route::post('sink/{sink}/chunk/import', 'import');
-    Route::post('sink/{sink}/chunk/deleteImported', 'deleteImported');
-});
+Route::apiResource('sinks', SinkApiController::class)->only(['index', 'show', 'update']);
+Route::apiResource('sinks.chunks', ChunkController::class)->only(['index', 'update']);
