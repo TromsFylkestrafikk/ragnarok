@@ -54,7 +54,6 @@ const execParams = reactive({
 });
 
 const selectionCount = computed(() => (execParams.targetSet === 'selection' ? execParams.selection.length : itemsLength.value));
-
 const execForm = ref(null);
 const execRules = reactive({
     operation: [(value) => !!value || 'Please select an operation'],
@@ -115,6 +114,33 @@ function resetSelection() {
 const { statusColor } = useStatus();
 
 // -----------------------------------------------------------------------------
+// Confirmation dialogs
+// -----------------------------------------------------------------------------
+const confDiags = reactive({ execOp: false, rmChunk: false, delImport: false });
+const targetChunkId = ref(null);
+
+function confirmChunkDeletion(chunkId) {
+    targetChunkId.value = chunkId;
+    confDiags.rmChunk = true;
+}
+
+function confirmImportDeletion(chunkId) {
+    targetChunkId.value = chunkId;
+    confDiags.delImport = true;
+}
+
+const needConfirmation = computed(
+    () => ['deleteFetched', 'deleteImported'].includes(execParams.operation) || selectionCount.value >= 20
+);
+
+const confirmOpText = computed(() => {
+    const destructive = ['deleteFetched', 'deleteImported'].includes(execParams.operation);
+    return selectionCount.value > 20
+        ? `You are about to perform a ${destructive ? 'destructive' : 'resource hungry'} operation on a large set (${selectionCount.value})`
+        : 'This is a destructive operation and will permanetly erase data from storage';
+});
+
+// -----------------------------------------------------------------------------
 // Loading and operation execution!
 // -----------------------------------------------------------------------------
 const loading = ref(true);
@@ -139,13 +165,12 @@ function singleChunkOperation(id, operation) {
     return axios.patch(`/api/sinks/${props.sink.id}/chunks/${id}`, { operation }).finally(() => ajaxing.value = false);
 }
 
-async function submitChunkOperation(event) {
-    const validation = await event;
-    if (!validation.valid) {
-        return;
-    }
+/**
+ * Perform actual operation on chunk selection
+ */
+async function execChunkOperation() {
     ajaxing.value = true;
-    axios.patch(`/api/sinks/${props.sink.id}`, {
+    return axios.patch(`/api/sinks/${props.sink.id}`, {
         ...filterParams,
         ...execParams,
     }).finally(() => {
@@ -154,20 +179,16 @@ async function submitChunkOperation(event) {
     });
 }
 
-// -----------------------------------------------------------------------------
-// Confirmation dialogs
-// -----------------------------------------------------------------------------
-const confDiags = reactive({ rmChunks: false, rmChunk: false, delImports: false, delImport: false });
-const targetChunkId = ref(null);
-
-function confirmChunkDeletion(chunkId) {
-    targetChunkId.value = chunkId;
-    confDiags.rmChunk = true;
-}
-
-function confirmImportDeletion(chunkId) {
-    targetChunkId.value = chunkId;
-    confDiags.delImport = true;
+async function submitChunkOperation(event) {
+    const validation = await event;
+    if (!validation.valid) {
+        return;
+    }
+    if (needConfirmation.value) {
+        confDiags.execOp = true;
+        return;
+    }
+    execChunkOperation();
 }
 
 // -----------------------------------------------------------------------------
@@ -394,6 +415,10 @@ onMounted(() => {
     <confirm-dialog v-model="confDiags.delImport" @confirmed="singleChunkOperation(targetChunkId, 'deleteImported')">
       <p>This will delete the processed, imported data from database storage.</p>
       <p>Proceed?</p>
+    </confirm-dialog>
+    <confirm-dialog v-model="confDiags.execOp" @confirmed="execChunkOperation">
+      <p>{{ confirmOpText }}</p>
+      <p>Really continue?</p>
     </confirm-dialog>
   </app-layout>
 </template>
