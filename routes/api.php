@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BatchApiController;
 use App\Http\Controllers\ChunkController;
 use App\Http\Controllers\SinkApiController;
 use Illuminate\Http\Request;
@@ -22,3 +23,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::apiResource('sinks', SinkApiController::class)->only(['index', 'show', 'update']);
 Route::apiResource('sinks.chunks', ChunkController::class)->only(['index', 'update']);
+Route::apiResource('batch', BatchApiController::class)->only(['index', 'destroy']);

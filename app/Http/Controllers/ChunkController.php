@@ -51,13 +51,14 @@ class ChunkController extends Controller
             'forceImport' => 'boolean',
         ]);
         $operation = $request->input('operation');
+        $batchId = (new ChunkDispatcher($sink->id))
+            ->setForceFetch($request->input('forceFetch'))
+            ->setForceImport($request->input('forceImport'))
+            ->{$operation}([$chunk->id]);
         return response([
-            'message' => "$operation job dispatched",
-            'status' => true,
-            'batchId' => (new ChunkDispatcher($sink->id))
-                ->setForceFetch($request->input('forceFetch'))
-                ->setForceImport($request->input('forceImport'))
-                ->{$operation}([$chunk->id]),
+            'message' => $batchId ? "$operation job dispatched" : 'Nothing to do',
+            'status' => (bool) $batchId,
+            'batchId' => $batchId,
         ]);
     }
 }

@@ -16,6 +16,7 @@ use Illuminate\Queue\SerializesModels;
 class DeleteImportedChunk implements ShouldQueue
 {
     use Batchable;
+    use BroadcastsBatch;
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -41,6 +42,7 @@ class DeleteImportedChunk implements ShouldQueue
             return;
         }
         Ragnarok::getSinkHandler($chunk->sink_id)->deleteImport($chunk);
+        self::broadcast($chunk->sink_id, $this->batch(), 1);
     }
 
     /**

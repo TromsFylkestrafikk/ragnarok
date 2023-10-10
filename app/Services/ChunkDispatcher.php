@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Events\ImportsFinished;
+use App\Jobs\BroadcastsBatch;
 use App\Jobs\DeleteImportedChunk;
+use App\Jobs\DeleteFetchedChunk;
 use App\Jobs\FetchChunk;
 use App\Jobs\ImportChunk;
-use App\Jobs\RemoveChunk;
 use App\Models\Chunk;
 use Closure;
 use Exception;
@@ -78,22 +78,11 @@ class ChunkDispatcher
      */
     public function fetch($ids): string|null
     {
-        $chunkCount = count($ids);
-        $jobs = $this->makeBatchJobs(FetchChunk::class, $ids, $this->forceFetch
-            ? null
-            : fn(Chunk $chunk) => $chunk->fetch_status !== 'finished');
-        if (!count($jobs)) {
-            $this->notice('No chunks to fetch');
-            return null;
-        }
-        // The batch is serialized. No use of $this in callbacks.
-        $batch = Bus::batch($jobs)->name('Fetch chunks')->then(function (Batch $batch) use ($chunkCount) {
-            Log::info(sprintf('[%s]: Successfully retrieved %d chunks from sink. (Batch %s)', $batch->name, $chunkCount, $batch->id));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->allowFailures()->onQueue('data')->dispatch();
-        $this->info("[%s]: Initiated batch fetching of %d chunks from sink .. (Batch %s).", $batch->name, $chunkCount, $batch->id);
-        return $batch->id;
+        return $this->dispatchJobs($this->makeBatchJobs(
+            FetchChunk::class,
+            $ids,
+            $this->forceFetch ? null : fn(Chunk $chunk) => $chunk->fetch_status !== 'finished'
+        ), __FUNCTION__);
     }
 
     /**
@@ -105,30 +94,11 @@ class ChunkDispatcher
      */
     public function deleteFetched($ids): string|null
     {
-        $start = microtime(true);
-        $jobs = $this->makeBatchJobs(RemoveChunk::class, $ids);
-        if (!$jobs) {
-            $this->notice("Found no chunks to delete");
-            return null;
-        }
-        $batch = Bus::batch($jobs)->name('Delete chunks')->then(function (Batch $batch) use ($start) {
-            Log::info(sprintf(
-                '[%s]: Deleted %d chunks in %.2f seconds. Batch ID: %s',
-                $batch->name,
-                $batch->totalJobs,
-                microtime(true) - $start,
-                $batch->id
-            ));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf("[%s]: Batch %s: %s", $batch->name, $batch->id, $except->getMessage()));
-        })->allowFailures()->onQueue('data')->dispatch();
-        $this->info(
-            "[%s]: Initiated batch deleting %d chunks of retrieved data. Batch ID: %s",
-            $batch->name,
-            $batch->totalJobs,
-            $batch->id
-        );
-        return $batch->id;
+        return $this->dispatchJobs($this->makeBatchJobs(
+            DeleteFetchedChunk::class,
+            $ids,
+            fn(Chunk $chunk) => $chunk->fetch_status !== 'new'
+        ), __FUNCTION__);
     }
 
     /**
@@ -140,28 +110,7 @@ class ChunkDispatcher
      */
     public function import($ids): string|null
     {
-        $chunkCount = count($ids);
-        $jobs = $this->makeImportBatchJobs($ids);
-        $start = microtime(true);
-        if (!count($jobs)) {
-            $this->notice('No chunks to import');
-            return null;
-        }
-        $batch = Bus::batch($jobs)->name('Import chunks')->then(function (Batch $batch) use ($start) {
-            Log::info(sprintf(
-                "[%s]: %d fetch + import jobs successfully executed in %.2f seconds. Batch ID: %s",
-                $batch->name,
-                $batch->totalJobs,
-                microtime(true) - $start,
-                $batch->id
-            ));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->finally(function (Batch $batch) {
-            ImportsFinished::dispatch($this->sinkId, $batch->id, $batch->totalJobs, $batch->failedJobs);
-        })->allowFailures()->onQueue('data')->dispatch();
-        $this->info("[%s]: Batch initiated on %d chunks with batch ID: %s", $batch->name, $chunkCount, $batch->id);
-        return $batch->id;
+        return $this->dispatchJobs($this->makeImportBatchJobs($ids), __FUNCTION__);
     }
 
     /**
@@ -173,19 +122,11 @@ class ChunkDispatcher
      */
     public function deleteImported($ids): string|null
     {
-        $start = microtime(true);
-        $jobs = $this->makeBatchJobs(DeleteImportedChunk::class, $ids);
-        if (!count($jobs)) {
-            $this->notice('No chunks to delete');
-            return null;
-        }
-        $batch = Bus::batch($jobs)->name('Delete imports')->then(function (Batch $batch) use ($start) {
-            Log::info(sprintf('[%s]: Deleted %d chunks from DB in %.2f seconds. Batch ID: %s', $batch->name, $batch->totalJobs, microtime(true) - $start, $batch->id));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
-        })->allowFailures()->onQueue('data')->dispatch();
-        $this->info("[%s]: Batch initiated on %d chunks with batch ID: %s", $batch->name, $batch->totalJobs, $batch->id);
-        return $batch->id;
+        return $this->dispatchJobs($this->makeBatchJobs(
+            DeleteImportedChunk::class,
+            $ids,
+            fn (Chunk $chunk)  => $chunk->import_status !== 'new'
+        ), __FUNCTION__);
     }
 
     /**
@@ -202,9 +143,9 @@ class ChunkDispatcher
         $jobs = [];
         $models = $this->getChunkModels($ids);
         if ($filter) {
-            $models->filter($filter);
+            $models = $models->filter($filter);
         }
-        foreach ($this->getChunkModels($ids) as $chunk) {
+        foreach ($models as $chunk) {
             /** @var Chunk $chunk  */
             $jobs[] = new $jobClass($chunk->id);
         };
@@ -233,6 +174,44 @@ class ChunkDispatcher
             ] : new ImportChunk($chunk->id);
             return $jobs;
         }, []);
+    }
+
+    /**
+     * Run jobs in batch and decorate with logging and error handling.
+     *
+     * @param mixed[] $jobs
+     * @param string $name
+     *
+     * @return null|string
+     */
+    protected function dispatchJobs(array $jobs, string $name): null|string
+    {
+        if (!count($jobs)) {
+            $this->notice('No chunks to fetch');
+            return null;
+        }
+        $start = microtime(true);
+        // The batch is serialized. No use of $this in callbacks.
+        $sinkId = $this->sinkId;
+        $batch = Bus::batch($jobs)->name("{$sinkId}: $name")->then(function (Batch $batch) use ($start) {
+            Log::info(sprintf(
+                '[%s]: Processed %d of %d jobs in %.2f seconds. Canceled: %s, Failed: %d. Batch ID: %s',
+                $batch->name,
+                $batch->processedJobs(),
+                $batch->totalJobs,
+                microtime(true) - $start,
+                $batch->canceled() ? 'YES' : 'no',
+                $batch->failedJobs,
+                $batch->id
+            ));
+        })->catch(function (Batch $batch, Throwable $except) {
+            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
+        })->finally(function (Batch $batch) use ($sinkId) {
+            BroadcastsBatch::broadcast($sinkId, $batch);
+        })->allowFailures()->onQueue('data')->dispatch();
+        BroadcastsBatch::broadcast($sinkId, $batch);
+        $this->info("[%s]: Initiated processing of %d jobs. Batch ID: %s", $batch->name, $batch->totalJobs, $batch->id);
+        return $batch->id;
     }
 
     /**

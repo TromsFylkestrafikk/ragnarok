@@ -9,11 +9,14 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
 use Illuminate\Queue\SerializesModels;
 
-class RemoveChunk implements ShouldQueue
+class DeleteFetchedChunk implements ShouldQueue
 {
     use Batchable;
+    use BroadcastsBatch;
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -40,5 +43,17 @@ class RemoveChunk implements ShouldQueue
             return;
         }
         Ragnarok::getSinkHandler($chunk->sink_id)->removeChunk($chunk);
+        self::broadcast($chunk->sink_id, $this->batch(), 1);
+    }
+
+    /**
+     * @return mixed[]
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping(sprintf('chunk-%d-del-fetched', $this->modelId)))->dontRelease(),
+            new SkipIfBatchCancelled(),
+        ];
     }
 }

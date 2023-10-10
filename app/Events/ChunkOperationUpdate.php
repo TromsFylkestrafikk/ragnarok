@@ -2,24 +2,33 @@
 
 namespace App\Events;
 
+use Illuminate\Bus\Batch;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ImportsFinished implements ShouldBroadcast
+/**
+ * Emitted in various steps of chunk operation batches.
+ */
+class ChunkOperationUpdate implements ShouldBroadcast
 {
     use Dispatchable;
     use InteractsWithSockets;
     use SerializesModels;
 
+    public $batch;
+
     /**
      * Create a new event instance.
+     *
+     * @param string $sinkId
+     * @param Batch $batchInstance
      */
-    public function __construct(public string $sinkId, public string $batchId, public int $totalJobs, public int $failedJobs)
+    public function __construct(public string $sinkId, Batch $batchInstance)
     {
-        //
+        $this->batch = $batchInstance->toArray();
     }
 
     /**

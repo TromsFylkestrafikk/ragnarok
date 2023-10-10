@@ -1,5 +1,6 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import BatchOperations from '@/Components/BatchOperations.vue';
 import useStatus from '@/composables/chunks';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -38,7 +39,7 @@ const canImport = computed(() => {
 
 function importNew(sinkId) {
     sinkIsBusy.value[sinkId] = true;
-    return axios.patch(`/api/sinks/${sinkId}`);
+    return axios.patch(`/api/sinks/${sinkId}`, { operation: 'importNew' });
 }
 
 async function refreshSink(sinkId) {
@@ -51,8 +52,12 @@ async function refreshSink(sinkId) {
 
 onMounted(() => {
     Echo.private('sinks').listen(
-        'ImportsFinished',
-        (event) => refreshSink(event.sinkId).then(sinkIsBusy.value[event.sinkId] = false)
+        'ChunkOperationUpdate',
+        (event) => refreshSink(event.sinkId).then(() => {
+            if (event.batch.finishedAt) {
+                sinkIsBusy.value[event.sinkId] = false;
+            }
+        })
     );
 });
 
@@ -89,7 +94,7 @@ onMounted(() => {
           v-if="canImport[item.id]"
           icon
           flat
-          @click="importNew(value)"
+          @click="importNew(item.id)"
         >
           <v-icon icon="mdi-import" />
           <v-tooltip activator="parent">
@@ -102,6 +107,7 @@ onMounted(() => {
         <div class="text-center pt-2">
           <v-pagination v-model="page" />
         </div>
+        <batch-operations />
       </template>
     </v-data-table>
   </app-layout>

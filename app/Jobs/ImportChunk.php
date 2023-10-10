@@ -16,6 +16,7 @@ use Illuminate\Queue\SerializesModels;
 class ImportChunk implements ShouldQueue
 {
     use Batchable;
+    use BroadcastsBatch;
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -36,14 +37,9 @@ class ImportChunk implements ShouldQueue
      */
     public function handle(): void
     {
-        if ($this->batch()->cancelled()) {
-            return;
-        }
-        $chunk = Chunk::find($this->modelId);
-        if (!$chunk) {
-            return;
-        }
+        $chunk = Chunk::findOrFail($this->modelId);
         Ragnarok::getSinkHandler($chunk->sink_id)->importChunk($chunk);
+        self::broadcast($chunk->sink_id, $this->batch(), 1);
     }
 
     /**
@@ -52,7 +48,7 @@ class ImportChunk implements ShouldQueue
     public function middleware(): array
     {
         return [
-            new WithoutOverlapping(sprintf('chunk-import-%d', $this->modelId)),
+            new WithoutOverlapping(sprintf('chunk-%d-import', $this->modelId)),
             new SkipIfBatchCancelled(),
         ];
     }

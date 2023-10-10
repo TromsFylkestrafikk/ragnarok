@@ -16,7 +16,9 @@ stack, where we shoe-horn in Vuetify as our main UI.
   customize their cron entry.
 - Sinks can now be searched/filtered based on ID and import/fetch
   status.
-- Added mass-operation tool for chunk selection
+- Added mass-operation tool for chunk selection.
+- Added progress bar of currently running operation with ability to
+  cancel.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.

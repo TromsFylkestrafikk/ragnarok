@@ -1,6 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import BatchOperations from '@/Components/BatchOperations.vue';
 import useStatus from '@/composables/chunks';
 import {
     computed,
@@ -114,7 +115,7 @@ function resetSelection() {
 const { statusColor } = useStatus();
 
 // -----------------------------------------------------------------------------
-// Confirmation dialogs
+// Confirmation dialogs and feedback (snackbar)
 // -----------------------------------------------------------------------------
 const confDiags = reactive({ execOp: false, rmChunk: false, delImport: false });
 const targetChunkId = ref(null);
@@ -138,6 +139,13 @@ const confirmOpText = computed(() => {
     return selectionCount.value > 20
         ? `You are about to perform a ${destructive ? 'destructive' : 'resource hungry'} operation on a large set (${selectionCount.value})`
         : 'This is a destructive operation and will permanetly erase data from storage';
+});
+
+const snackProps = reactive({
+    color: null,
+    location: 'top',
+    model: false,
+    message: null,
 });
 
 // -----------------------------------------------------------------------------
@@ -173,6 +181,10 @@ async function execChunkOperation() {
     return axios.patch(`/api/sinks/${props.sink.id}`, {
         ...filterParams,
         ...execParams,
+    }).then((result) => {
+        snackProps.color = result.data.status ? null : 'warning';
+        snackProps.message = `Server said: ${result.data.message}`;
+        snackProps.model = true;
     }).finally(() => {
         ajaxing.value = false;
         resetOperationForm();
@@ -234,6 +246,17 @@ onMounted(() => {
 
 <template>
   <app-layout title="Sink status">
+    <v-snackbar v-model="snackProps.model" :color="snackProps.color">
+      {{ snackProps.message }}
+      <template #actions>
+        <v-btn
+          variant="text"
+          @click="snackProps.model = false"
+        >
+          OK
+        </v-btn>
+      </template>
+    </v-snackbar>
     <v-data-table-server
       v-model="execParams.selection"
       :headers="headers"
@@ -327,6 +350,7 @@ onMounted(() => {
             </v-card-text>
           </v-expand-transition>
         </v-card>
+        <batch-operations :sink-id="sink.id" />
       </template>
       <template #thead>
         <tr>

@@ -16,6 +16,7 @@ use App\Models\Chunk;
 class FetchChunk implements ShouldQueue
 {
     use Batchable;
+    use BroadcastsBatch;
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -41,6 +42,7 @@ class FetchChunk implements ShouldQueue
             return;
         }
         Ragnarok::getSinkHandler($chunk->sink_id)->fetchChunk($chunk);
+        self::broadcast($chunk->sink_id, $this->batch(), 1);
     }
 
     /**

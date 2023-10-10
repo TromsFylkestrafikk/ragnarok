@@ -48,22 +48,24 @@ class SinkApiController extends Controller
                 'required',
                 Rule::in(['importNew', 'fetch', 'import', 'deleteFetched', 'deleteImported']),
             ],
-            'targetSet' => ['required', Rule::in(['selection', 'range'])],
+            'targetSet' => ['exclude_if:operation,importNew', 'required', Rule::in(['selection', 'range'])],
+            'selection' => 'array',
             'forceFetch' => 'boolean',
             'forceImport' => 'boolean',
         ]);
         $operation = $request->input('operation');
+        $batchId = $this->executeOperation($request, $sink, $operation);
         return response([
-            'message' => "$operation job dispatched",
-            'status' => true,
-            'batchId' => $this->executeOperation($request, $sink, $operation),
+            'message' => $batchId ? "$operation job dispatched with ID: $batchId" : 'Nothing to do',
+            'status' => (bool) $batchId,
+            'batchId' => $batchId,
         ]);
     }
 
     /**
-     * @return string Batch ID of executed batch operation.
+     * @return string|null Batch ID of executed batch operation.
      */
-    protected function executeOperation(Request $request, Sink $sink, string $operation)
+    protected function executeOperation(Request $request, Sink $sink, string $operation): string|null
     {
         if ($operation === 'importNew') {
             return Ragnarok::getSinkHandler($sink->id)->importNewChunks();
@@ -79,7 +81,7 @@ class SinkApiController extends Controller
      *
      * @return array
      */
-    protected function getChunkIdsFromRequest(Request $request, Sink $sink)
+    protected function getChunkIdsFromRequest(Request $request, Sink $sink): array
     {
         $query = $this->applyFilters($request->input(), $sink->chunks());
         return $this->applyTargetFilters($request, $query)->get()->pluck('id')->toArray();
@@ -90,7 +92,7 @@ class SinkApiController extends Controller
      *
      * @return Builder
      */
-    protected function applyTargetFilters(Request $request, $query)
+    protected function applyTargetFilters(Request $request, $query): Builder
     {
         if ($request->input('targetSet') === 'selection') {
             $query->whereIn('id', $request->input('selection'));
