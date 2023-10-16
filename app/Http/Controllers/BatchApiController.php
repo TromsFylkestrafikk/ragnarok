@@ -7,12 +7,12 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Log;
 
 class BatchApiController extends Controller
 {
     public function index(Request $request): Collection
     {
+        $this->authorize('read sinks');
         $query = DB::table('job_batches')
             ->select('id')
             ->where('total_jobs', '>', 1)
@@ -23,7 +23,6 @@ class BatchApiController extends Controller
         // linking batches to sinks, we scan for the sink ID in the batch name,
         // specified in App\Services\ChunkDispatcher.
         if ($request->input('sinkId')) {
-            Log::debug('Adding sink filter');
             $query->where('name', 'LIKE', sprintf('%s: %%', $request->input('sinkId')));
         }
         return $query->pluck('id')->map(fn ($batchId) => Bus::findBatch($batchId));
@@ -38,6 +37,7 @@ class BatchApiController extends Controller
      */
     public function destroy($batchId): Response
     {
+        $this->authorize('delete batches');
         $batch = Bus::findBatch($batchId);
         if (!$batch) {
             return response('Not found', Response::HTTP_NOT_FOUND);

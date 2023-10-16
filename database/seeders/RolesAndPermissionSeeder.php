@@ -22,9 +22,13 @@ class RolesAndPermissionSeeder extends Seeder
         Permission::create(['name' => 'edit users']);
         Permission::create(['name' => 'delete users']);
 
-        Permission::create(['name' => 'read sources']);
-        Permission::create(['name' => 'import sources']);
-        Permission::create(['name' => 'edit sources']);
+        Permission::create(['name' => 'read sinks']);
+        Permission::create(['name' => 'read chunks']);
+        Permission::create(['name' => 'fetch chunks']);
+        Permission::create(['name' => 'import chunks']);
+        Permission::create(['name' => 'deleteFetched chunks']);
+        Permission::create(['name' => 'deleteImported chunks']);
+        Permission::create(['name' => 'delete batches']);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
@@ -32,17 +36,28 @@ class RolesAndPermissionSeeder extends Seeder
             'create users',
             'delete users',
             'edit users',
-            'read sources',
-            'import sources',
-            'edit sources',
+            'read sinks',
+            'read chunks',
+            'fetch chunks',
+            'import chunks',
+            'deleteFetched chunks',
+            'deleteImported chunks',
+            'delete batches',
         ]);
 
         Role::create(['name' => 'maintainer'])->givePermissionTo([
-            'read sources',
-            'import sources',
-            'edit sources',
+            'read sinks',
+            'read chunks',
+            'fetch chunks',
+            'import chunks',
+            'deleteFetched chunks',
+            'deleteImported chunks',
+            'delete batches',
         ]);
 
-        Role::create(['name' => 'reader'])->givePermissionTo('read sources');
+        Role::create(['name' => 'reader'])->givePermissionTo([
+            'read sinks',
+            'read chunks',
+        ]);
     }
 }

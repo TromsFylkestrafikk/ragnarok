@@ -3,12 +3,14 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
 import useStatus from '@/composables/chunks';
 import { Link } from '@inertiajs/vue3';
+import { permissionProps } from '@/composables/permissions';
 import axios from 'axios';
 import { assign, forEach, reduce } from 'lodash';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
     sinks: { type: Object, required: true },
+    ...permissionProps,
 });
 
 const headers = ref([
@@ -107,7 +109,7 @@ onMounted(() => {
         <div class="text-center pt-2">
           <v-pagination v-model="page" />
         </div>
-        <batch-operations />
+        <batch-operations :permissions="props.permissions" />
       </template>
     </v-data-table>
   </app-layout>

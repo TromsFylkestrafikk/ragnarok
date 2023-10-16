@@ -19,15 +19,13 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 
 Broadcast::channel('App.Models.SinkImport', function ($user) {
-    // return $user->hasDirectPermission('read sources');
-    return true;
+    return $user->can('read sinks');
 });
 
 Broadcast::channel('App.Models.Chunk', function ($user) {
-    // return $user->hasDirectPermission('read sources');
-    return true;
+    return $user->can('read sinks');
 });
 
 Broadcast::channel('sinks', function (User $user) {
-    return $user->can('read sources');
+    return $user->can('read sinks');
 });

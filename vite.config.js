@@ -25,4 +25,13 @@ export default defineConfig({
     resolve: {
         alias: { '@': '/resources/js' },
     },
+    build: {
+        watch: {
+            include: [
+                'resources/js/**',
+                'resources/sass/**',
+            ],
+            exclude: ['app', 'bootstrap', 'config', 'database', 'etc', 'node_modules', 'public', 'routes', 'scripts', 'storage', 'tests', 'vendor'],
+        },
+    },
 });

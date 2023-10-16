@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
+use App\Http\Requests\UpdateSinkRequest;
 use App\Http\Resources\SinkCollection;
 use App\Http\Resources\SinkResource;
 use App\Http\Helpers\ChunksFilter;
@@ -11,7 +12,6 @@ use App\Services\ChunkDispatcher;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
 
 class SinkApiController extends Controller
 {
@@ -27,6 +27,7 @@ class SinkApiController extends Controller
      */
     public function index()
     {
+        $this->authorize('read sinks');
         return new SinkCollection(Sink::all());
     }
 
@@ -35,24 +36,15 @@ class SinkApiController extends Controller
      */
     public function show(Sink $sink)
     {
+        $this->authorize('read', $sink);
         return new SinkResource($sink);
     }
 
     /**
      * Update chunks belonging to this sink.
      */
-    public function update(Request $request, Sink $sink): Response
+    public function update(UpdateSinkRequest $request, Sink $sink): Response
     {
-        $request->validate([
-            'operation' => [
-                'required',
-                Rule::in(['importNew', 'fetch', 'import', 'deleteFetched', 'deleteImported']),
-            ],
-            'targetSet' => ['exclude_if:operation,importNew', 'required', Rule::in(['selection', 'range'])],
-            'selection' => 'array',
-            'forceFetch' => 'boolean',
-            'forceImport' => 'boolean',
-        ]);
         $operation = $request->input('operation');
         $batchId = $this->executeOperation($request, $sink, $operation);
         return response([

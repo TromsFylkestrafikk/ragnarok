@@ -11,6 +11,7 @@ import Pusher from 'pusher-js';
 window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.withCredentials = true;
 
 /**
  * Echo exposes an expressive API for subscribing to channels and listening

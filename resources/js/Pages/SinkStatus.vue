@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
+import { permissionProps, usePermissions } from '@/composables/permissions';
 import useStatus from '@/composables/chunks';
 import {
     computed,
@@ -15,6 +16,7 @@ import dayjs from 'dayjs';
 
 const props = defineProps({
     sink: { type: Object, required: true },
+    ...permissionProps,
 });
 
 // -----------------------------------------------------------------------------
@@ -39,6 +41,7 @@ const itemsKeyed = computed(() => {
 // -----------------------------------------------------------------------------
 // Operation form and input selection
 // -----------------------------------------------------------------------------
+const { haveOperations } = usePermissions(props);
 const operationItems = ref([
     { value: 'fetch', title: 'Fetch from sink' },
     { value: 'deleteFetched', title: 'Delete fetched' },
@@ -276,7 +279,7 @@ onMounted(() => {
             <v-col v-if="showOp" class="text-grey">
               {{ selectionCount }} selected
             </v-col>
-            <v-btn icon @click="showOp = !showOp">
+            <v-btn v-if="haveOperations" icon @click="showOp = !showOp">
               <v-icon :icon="showOp ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
             </v-btn>
             <v-btn icon variant="plain" @click="resetSelection()">
@@ -287,7 +290,7 @@ onMounted(() => {
             </v-btn>
           </v-toolbar>
           <v-expand-transition>
-            <v-card-text v-show="showOp">
+            <v-card-text v-if="haveOperations" v-show="showOp">
               <v-form
                 ref="execForm"
                 :dislabled="ajaxing"
@@ -350,7 +353,7 @@ onMounted(() => {
             </v-card-text>
           </v-expand-transition>
         </v-card>
-        <batch-operations :sink-id="sink.id" />
+        <batch-operations :sink-id="sink.id" :permissions="props.permissions" />
       </template>
       <template #thead>
         <tr>
@@ -390,14 +393,19 @@ onMounted(() => {
             {{ prettyDate(item.fetched_at) }}
           </v-tooltip>
         </v-chip>
-        <v-btn icon variant="plain" @click="singleChunkOperation(item.id, 'fetch')">
+        <v-btn
+          v-if="props.permissions.operations.fetch"
+          icon
+          variant="plain"
+          @click="singleChunkOperation(item.id, 'fetch')"
+        >
           <v-icon icon="mdi-tray-arrow-down" />
           <v-tooltip activator="parent">
             Stage 1: Fetch chunk to local storage from sink
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="item.fetch_status !=='new'"
+          v-if="props.permissions.operations.deleteFetched && item.fetch_status !=='new'"
           icon
           variant="plain"
           @click="confirmChunkDeletion(item.id)"
@@ -412,14 +420,19 @@ onMounted(() => {
         <v-chip :color="statusColor[value]">
           {{ item.import_status }}
         </v-chip>
-        <v-btn icon variant="plain" @click="singleChunkOperation(item.id, 'import')">
+        <v-btn
+          v-if="props.permissions.operations.import"
+          icon
+          variant="plain"
+          @click="singleChunkOperation(item.id, 'import')"
+        >
           <v-icon icon="mdi-database-arrow-down" />
           <v-tooltip activator="parent">
             Stage 2: Import chunk to database
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="item.import_status !== 'new'"
+          v-if="props.permissions.operations.deleteImported && item.import_status !== 'new'"
           icon
           variant="plain"
           @click="confirmImportDeletion(item.id)"

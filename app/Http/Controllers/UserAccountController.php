@@ -6,7 +6,6 @@ use App\Mail\UserAccountDeleted;
 use App\Mail\UserAccountInfo;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
