@@ -5,7 +5,7 @@ import useStatus from '@/composables/chunks';
 import { Link } from '@inertiajs/vue3';
 import { permissionProps } from '@/composables/permissions';
 import axios from 'axios';
-import { assign, forEach, reduce } from 'lodash';
+import { assign, forEach, reduce, throttle } from 'lodash';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -44,13 +44,11 @@ function importNew(sinkId) {
     return axios.patch(`/api/sinks/${sinkId}`, { operation: 'importNew' });
 }
 
-async function refreshSink(sinkId) {
-    return axios.get(`/api/sinks/${sinkId}`).then((result) => {
-        // We cannot replace props. Update the individual sink properties
-        // directly.
-        assign(props.sinks[result.data.sink.id], result.data.sink);
-    });
-}
+const refreshSink = throttle((sinkId) => axios.get(`/api/sinks/${sinkId}`).then((result) => {
+    // We cannot replace props. Update the individual sink properties
+    // directly.
+    assign(props.sinks[result.data.sink.id], result.data.sink);
+}), 1000);
 
 onMounted(() => {
     Echo.private('sinks').listen(

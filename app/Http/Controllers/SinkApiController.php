@@ -36,7 +36,7 @@ class SinkApiController extends Controller
      */
     public function show(Sink $sink)
     {
-        $this->authorize('read', $sink);
+        $this->authorize('view', $sink);
         return new SinkResource($sink);
     }
 
