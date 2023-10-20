@@ -23,5 +23,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::apiResource('sinks', SinkApiController::class)->only(['index', 'show', 'update']);
     Route::apiResource('sinks.chunks', ChunkController::class)->only(['index', 'update']);
-    Route::apiResource('batch', BatchApiController::class)->only(['index', 'destroy']);
+    Route::apiResource('batch', BatchApiController::class)->only(['index', 'show', 'destroy']);
 });

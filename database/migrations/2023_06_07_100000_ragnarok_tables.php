@@ -23,13 +23,13 @@ return new class extends Migration
             $table->char('chunk_id', 64)->comment('Chunk id as given by source');
             $table->char('sink_id', 64);
             $table->bigInteger('records')->default(0)->comment('Number of records imported');
-            $table->bigInteger('import_id')->nullable()->comment('Import this chunk belongs to');
             $table->enum('fetch_status', [
                 'new',
                 'in_progress',
                 'finished',
                 'failed',
             ])->default('new')->comment('Raw data retrieval status');
+            $table->text('fetch_message')->nullable()->comment('Status/error message of last fetch operation');
             $table->timestamp('fetched_at')->nullable()->comment('Fetch timestamp');
             $table->enum('import_status', [
                 'new',
@@ -37,6 +37,7 @@ return new class extends Migration
                 'finished',
                 'failed',
             ])->default('new')->comment('Import status');
+            $table->text('import_message')->nullable()->comment('Status/error message of last import operation');
             $table->timestamp('imported_at')->nullable()->comment('Import timestamp');
             $table->timestamps();
             $table->unique(['chunk_id', 'sink_id']);

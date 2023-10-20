@@ -19,6 +19,8 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Added mass-operation tool for chunk selection.
 - Added progress bar of currently running operation with ability to
   cancel.
+- Centralized error/exception handling with feedback/presentation on
+  front end.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Bus\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Bus;
+use Response as ResponseResponse;
 
 class BatchApiController extends Controller
 {
@@ -28,6 +30,16 @@ class BatchApiController extends Controller
         return $query->pluck('id')->map(fn ($batchId) => Bus::findBatch($batchId));
     }
 
+    public function show(string $batchId): Batch|null
+    {
+        $this->authorize('read sinks');
+        $batch = Bus::findBatch($batchId);
+        if (!$batch) {
+            abort(Response::HTTP_NOT_FOUND);
+        }
+        return $batch;
+    }
+
     /**
      * Cancel running batch
      *
@@ -46,6 +58,10 @@ class BatchApiController extends Controller
             return response(['status' => false, 'message' => 'Batch is not running', 'batchId' => $batch->id]);
         }
         $batch->cancel();
-        return response(['status' => true, 'message' => 'Cancel signal sent to running batch', 'batchId' => $batch->id]);
+        return response([
+            'status' => true,
+            'message' => 'Batch cancelled',
+            'batch' => Bus::findBatch($batch->id)
+        ]);
     }
 }

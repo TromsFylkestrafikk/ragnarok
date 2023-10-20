@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
+import ChunkError from '@/Pages/Partials/ChunkError.vue';
 import { permissionProps, usePermissions } from '@/composables/permissions';
 import useStatus from '@/composables/chunks';
 import {
@@ -28,6 +29,7 @@ const headers = ref([
     { title: 'Import status', key: 'import_status', sortable: true },
 ]);
 
+const expanded = ref([]);
 const items = ref([]);
 const itemsLength = ref(0);
 const itemsKeyed = computed(() => {
@@ -220,6 +222,13 @@ function prettyDate(dateStr) {
     return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss');
 }
 
+function toggleExpand(chunk, statusProperty) {
+    if (chunk[statusProperty] !== 'failed') {
+        return;
+    }
+    expanded.value = expanded.value.includes(chunk.id) ? [] : [chunk.id];
+}
+
 /* function setSelectionState(column, state) {
  *     execParams.selection.forEach((chunkId) => itemsKeyed.value[chunkId] && (itemsKeyed.value[chunkId][column] = state));
  * }
@@ -262,6 +271,7 @@ onMounted(() => {
     </v-snackbar>
     <v-data-table-server
       v-model="execParams.selection"
+      v-model:expanded="expanded"
       :headers="headers"
       :items="items"
       :items-length="itemsLength"
@@ -387,7 +397,11 @@ onMounted(() => {
         </tr>
       </template>
       <template #item.fetch_status="{ item, value }">
-        <v-chip :color="statusColor[value]">
+        <v-chip
+          :color="statusColor[value]"
+          :prepend-icon="item.fetch_status === 'failed' ? 'mdi-skull' : null"
+          @click="toggleExpand(item, 'fetch_status')"
+        >
           {{ value }}
           <v-tooltip v-if="item.fetched_at" activator="parent">
             {{ prettyDate(item.fetched_at) }}
@@ -417,8 +431,15 @@ onMounted(() => {
         </v-btn>
       </template>
       <template #item.import_status="{ item, value }">
-        <v-chip :color="statusColor[value]">
+        <v-chip
+          :color="statusColor[value]"
+          :prepend-icon="item.import_status === 'failed' ? 'mdi-skull' : null"
+          @click="toggleExpand(item, 'import_status')"
+        >
           {{ item.import_status }}
+          <v-tooltip v-if="item.imported_at" activator="parent">
+            {{ prettyDate(item.imported_at) }}
+          </v-tooltip>
         </v-chip>
         <v-btn
           v-if="props.permissions.operations.import"
@@ -442,6 +463,14 @@ onMounted(() => {
             Stage 2: Delete chunk from database
           </v-tooltip>
         </v-btn>
+      </template>
+      <template #expanded-row="{ columns, item }">
+        <tr>
+          <td :colspan="columns.length">
+            <chunk-error :chunk="item" stage="fetch" @close="expanded = []" />
+            <chunk-error :chunk="item" stage="import" @close="expanded = []" />
+          </td>
+        </tr>
       </template>
     </v-data-table-server>
 

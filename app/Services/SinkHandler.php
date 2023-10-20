@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Sink;
 use App\Models\Chunk;
+use App\Helpers\Utils;
+use Closure;
+use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -101,12 +104,7 @@ class SinkHandler
     {
         $this->debug("Fetching chunk '%s' ...", $chunk->chunk_id);
         $start = microtime(true);
-        $chunk->fetch_status = 'in_progress';
-        $chunk->fetched_at = null;
-        $chunk->save();
-        $chunk->fetch_status = $this->src->fetch($chunk->chunk_id) ? 'finished' : 'failed';
-        $chunk->fetched_at = now();
-        $chunk->save();
+        $this->doRunOperation(fn() => $this->src->fetch($chunk->chunk_id), $chunk, 'fetch');
         $this->info('Fetched chunk %s in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
         return $this;
     }
@@ -117,10 +115,7 @@ class SinkHandler
      */
     public function removeChunk($chunk): SinkHandler
     {
-        $chunk->fetched_at = null;
-        $chunk->fetch_status = 'new';
-        $chunk->save();
-        $this->src->removeChunk($chunk->chunk_id);
+        $this->doRunOperation(fn() => $this->src->removeChunk($chunk->chunk_id), $chunk, 'fetch', 'new');
         $this->info("Removed retrieved stage 1 data for chunk '%s'", $chunk->chunk_id);
         return $this;
     }
@@ -142,14 +137,7 @@ class SinkHandler
             return $this;
         }
         $start = microtime(true);
-        $chunk->import_status = 'in_progress';
-        $chunk->imported_at = null;
-        $chunk->save();
-        // Delete existing data.
-        $this->src->deleteImport($chunk->chunk_id);
-        $chunk->import_status = $this->src->import($chunk->chunk_id) ? 'finished' : 'failed';
-        $chunk->imported_at = now();
-        $chunk->save();
+        $this->doRunOperation(fn() => $this->src->import($chunk->chunk_id), $chunk, 'import');
         $this->info("Imported chunk '%s' in %.2f seconds", $chunk->chunk_id, microtime(true) - $start);
         return $this;
     }
@@ -164,14 +152,42 @@ class SinkHandler
     public function deleteImport(Chunk $chunk): SinkHandler
     {
         $start = microtime(true);
-        $chunk->imported_at = null;
-        $chunk->import_status = 'in_progress';
-        $chunk->save();
-        $this->src->deleteImport($chunk->chunk_id);
-        $chunk->import_status = 'new';
-        $chunk->save();
+        $this->doRunOperation(fn() => $this->src->deleteImport($chunk->chunk_id), $chunk, 'import', 'new');
         $this->info('Deleted chunk \'%s\' from DB in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
         return $this;
+    }
+
+    /**
+     * Perform given operation and update chunk status.
+     *
+     * @param Closure $run
+     * @param Chunk $chunk
+     * @param string $stage 'fetch' or 'import'.
+     * @param string $finalState Operation state if successful.
+     *
+     * @return mixed
+     */
+    protected function doRunOperation(Closure $run, Chunk $chunk, $stage, $finalState = 'finished')
+    {
+        $chunk->{$stage . '_status'} = 'in_progress';
+        $chunk->{$stage . '_message'} = null;
+        $chunk->{$stage . 'ed_at'} = null;
+        $chunk->save();
+        try {
+            $result = $run();
+        } catch (Exception $except) {
+            $this->error("Got exception in %s stage where final state should be %s", $stage, $finalState);
+            $chunk->{$stage . '_status'} = 'failed';
+            $chunk->{$stage . '_message'} = Utils::exceptToStr($except);
+            $chunk->save();
+            throw $except;
+        }
+        $chunk->{$stage . '_status'} = $finalState;
+        if ($finalState === 'finished') {
+            $chunk->{$stage . 'ed_at'} = now();
+        }
+        $chunk->save();
+        return $result;
     }
 
     /**

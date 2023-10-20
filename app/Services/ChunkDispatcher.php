@@ -187,7 +187,7 @@ class ChunkDispatcher
     protected function dispatchJobs(array $jobs, string $name): null|string
     {
         if (!count($jobs)) {
-            $this->notice('No chunks to fetch');
+            $this->notice('No jobs to dispatch');
             return null;
         }
         $start = microtime(true);
@@ -204,9 +204,12 @@ class ChunkDispatcher
                 $batch->failedJobs,
                 $batch->id
             ));
-        })->catch(function (Batch $batch, Throwable $except) {
-            Log::error(sprintf('[%s]: On Batch %s: %s', $batch->name, $batch->id, $except->getMessage()));
         })->finally(function (Batch $batch) use ($sinkId) {
+            if ($batch->pendingJobs && $batch->failedJobs && !$batch->cancelled()) {
+                Log::notice(sprintf("[%s]: Batch run is complete with failures. Cancelling ...", $batch->name));
+                $batch->cancel();
+                $batch = Bus::findBatch($batch->id);
+            }
             BroadcastsBatch::broadcast($sinkId, $batch);
         })->allowFailures()->onQueue('data')->dispatch();
         BroadcastsBatch::broadcast($sinkId, $batch);

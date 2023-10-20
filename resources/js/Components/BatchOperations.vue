@@ -12,8 +12,33 @@ const batches = reactive({});
 const hasBatches = computed(() => reduce(batches, () => true, false));
 const confirmDiag = ref(false);
 
+function replaceBatch(batch) {
+    batches[batch.id] = batch;
+    if (batch.finishedAt) {
+        setTimeout(() => delete batches[batch.id], 5000);
+    }
+}
+
 function cancelBatch(batchId) {
-    axios.delete(`/api/batch/${batchId}`).then(() => batches[batchId].finishedAt = true);
+    axios.delete(`/api/batch/${batchId}`).then((result) => replaceBatch(result.data.batch));
+}
+
+function progressBarContent(batch) {
+    if (batch.cancelledAt) {
+        return 'Cancelled ...';
+    }
+    const failed = batch.failedJobs ? `Failed: ${batch.failedJobs}` : '';
+    return `${batch.processedJobs} / ${batch.totalJobs} (${batch.progress} %) ${failed}`;
+}
+
+function progressBarColor(batch) {
+    if (batch.failedJobs) {
+        return 'red';
+    }
+    if (batch.progress >= 100) {
+        return 'green';
+    }
+    return 'amber';
 }
 
 onMounted(() => {
@@ -32,10 +57,7 @@ onMounted(() => {
             if (props.sinkId && !event.batch.name.startsWith(`${props.sinkId}: `)) {
                 return;
             }
-            batches[event.batch.id] = event.batch;
-            if (event.batch.finishedAt && event.batch.progress === 100) {
-                setTimeout(() => delete batches[event.batch.id], 5000);
-            }
+            replaceBatch(event.batch);
         }
     );
 });
@@ -49,8 +71,8 @@ onMounted(() => {
       <v-card-text>
         <v-row v-for="batch in batches" :key="batch.id" align="center">
           <v-col :cols="props.permissions.deleteBatches ? 8 : 10">
-            <v-progress-linear :model-value="batch.progress" height="35" color="amber">
-              {{ batch.processedJobs }} / {{ batch.totalJobs }} ({{ batch.progress }} %)
+            <v-progress-linear :model-value="batch.progress" height="35" :color="progressBarColor(batch)">
+              {{ progressBarContent(batch) }}
             </v-progress-linear>
           </v-col>
           <v-col cols="2">
