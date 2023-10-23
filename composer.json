@@ -16,6 +16,7 @@
         "ragnarok/consat": "dev-main",
         "ragnarok/ruter": "dev-main",
         "ragnarok/sink": "dev-main",
+        "ragnarok/skyttel": "dev-main",
         "ragnarok/strex": "dev-main",
         "spatie/laravel-permission": "^5.9",
         "tightenco/ziggy": "^1.0"
@@ -74,6 +75,10 @@
         {
             "type": "github",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-sink"
+        },
+        {
+            "type": "path",
+            "url": "../ragnarok-skyttel"
         },
         {
             "type": "github",
