@@ -11,6 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
+        $statusValues = ['new', 'in_progress', 'finished', 'failed'];
         Schema::create('ragnarok_sinks', function (Blueprint $table) {
             $table->char('id', 64)->primary()->comment('Unique sink ID');
             $table->char('title', 255)->comment('Title/name of sink for presentation');
@@ -18,25 +19,17 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('ragnarok_chunks', function (Blueprint $table) {
+        Schema::create('ragnarok_chunks', function (Blueprint $table) use ($statusValues) {
             $table->id()->comment('Chunk ID');
             $table->char('chunk_id', 64)->comment('Chunk id as given by source');
             $table->char('sink_id', 64);
             $table->bigInteger('records')->default(0)->comment('Number of records imported');
-            $table->enum('fetch_status', [
-                'new',
-                'in_progress',
-                'finished',
-                'failed',
-            ])->default('new')->comment('Raw data retrieval status');
+            $table->enum('fetch_status', $statusValues)->default('new')->comment('Raw data retrieval status');
+            $table->unsignedInteger('fetch_size')->nullable()->comment('Total size of fetched files/data');
             $table->text('fetch_message')->nullable()->comment('Status/error message of last fetch operation');
             $table->timestamp('fetched_at')->nullable()->comment('Fetch timestamp');
-            $table->enum('import_status', [
-                'new',
-                'in_progress',
-                'finished',
-                'failed',
-            ])->default('new')->comment('Import status');
+            $table->enum('import_status', $statusValues)->default('new')->comment('Import status');
+            $table->unsignedInteger('import_size')->nullable()->comment('Total number of imported records');
             $table->text('import_message')->nullable()->comment('Status/error message of last import operation');
             $table->timestamp('imported_at')->nullable()->comment('Import timestamp');
             $table->timestamps();

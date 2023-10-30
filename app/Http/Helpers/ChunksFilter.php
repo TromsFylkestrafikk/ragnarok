@@ -13,6 +13,8 @@ trait ChunksFilter
     protected function applyFilters(array $input, Builder $query)
     {
         $this->applyChunkIdFilter($input, $query);
+        $this->applySizeFilter($input, 'fetch_size', $query);
+        $this->applySizeFilter($input, 'import_size', $query);
         return $this->applyStatusFilters($input, $query);
     }
 
@@ -55,18 +57,53 @@ trait ChunksFilter
      * '<id1> .. <id2>' WITH the space between. Searching for ID with a given
      * pattern is performed if no range is found.
      *
+     * @param string $search
      * @param Builder $query
      *
      * @return Builder
      */
     protected function searchIdToQuery(string $search, $query)
     {
-        $range = explode(' .. ', $search);
-        if (count($range) > 1) {
-            sort($range);
-            list($fromId, $toId) = $range;
-            return $query->where([['chunk_id', '>=', $fromId], ['chunk_id', '<=', $toId]]);
+        $match = [];
+        $hits = preg_match_all('/\s*(?<single>[^<>\s]+)|((?<compare>[<>]=?)\s*(?<value>[^<>\s]+))\s*/', $search, $match);
+        for ($hit = 0; $hit < $hits; $hit++) {
+            if (strlen($match['single'][$hit])) {
+                return $query->where('chunk_id', 'LIKE', sprintf('%%%s%%', $match['single'][$hit]));
+            }
+            $query->where('chunk_id', $match['compare'][$hit], $match['value'][$hit]);
         }
-        return $query->where('chunk_id', 'LIKE', "%{$search}%");
+    }
+
+    /**
+     * Add range filter using comparison operators.
+     *
+     * Exact value is specified using a numeric value alone. Comparison is done
+     * by using either '<', '>', '>=' or '<=' as prefix to number, with max two
+     * comparison groups allowed. Examples of allowed search:
+     * - < 300
+     * - >= 300 < 500
+     * - 200
+     *
+     * @param array $search
+     * @param string $column
+     * @param Builder $query
+     * @return Builder
+     */
+    protected function applySizeFilter($input, string $column, $query)
+    {
+        $search = $input[$column] ?? null;
+        if (!$search) {
+            return $query;
+        }
+        $match = [];
+        $hits = preg_match_all('/\s*(?<single>\d+)|((?<compare>[<>]=?)\s*(?<value>\d+))\s*/', $search, $match);
+        for ($hit = 0; $hit < $hits; $hit++) {
+            if (strlen($match['single'][$hit])) {
+                $query->where($column, $match['single'][$hit]);
+                continue;
+            }
+            $query->where($column, $match['compare'][$hit], $match['value'][$hit]);
+        }
+        return $query;
     }
 }

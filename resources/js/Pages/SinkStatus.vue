@@ -12,6 +12,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import { filesize } from 'filesize';
 import { forEach, debounce } from 'lodash';
 import dayjs from 'dayjs';
 
@@ -26,7 +27,9 @@ const props = defineProps({
 const headers = ref([
     { title: 'Chunk ID', key: 'chunk_id', sortable: true },
     { title: 'Fetch status', key: 'fetch_status', sortable: true },
+    { title: 'Fetch size', key: 'fetch_size', sortable: true },
     { title: 'Import status', key: 'import_status', sortable: true },
+    { title: 'Imported rows', key: 'import_size', sortable: true },
 ]);
 
 const expanded = ref([]);
@@ -95,10 +98,18 @@ const selectStates = ref([
 const filterParams = reactive({
     chunk_id: null,
     fetch_status: null,
+    fetch_size: null,
     import_status: null,
+    import_size: null,
 });
 
-const filterChunkIdInput = debounce((val) => filterParams.chunk_id = val, 600);
+function filterInputFactory(param) {
+    return debounce((val) => filterParams[param] = val, 600);
+}
+
+const filterChunkIdInput = filterInputFactory('chunk_id');
+const filterFetchSizeInput = filterInputFactory('fetch_size');
+const filterImportSizeInput = filterInputFactory('import_size');
 
 const searchDummy = ref(null);
 
@@ -114,7 +125,9 @@ function resetSelection() {
     resetOperationForm();
     clearChunkId();
     filterParams.fetch_status = null;
+    filterParams.fetch_size = null;
     filterParams.import_status = null;
+    filterParams.import_size = null;
 }
 
 const { statusColor } = useStatus();
@@ -374,6 +387,7 @@ onMounted(() => {
               append-inner-icon="mdi-magnify"
               class="mr-4 mt-2"
               clearable
+              placeholder="E.g >= ID"
               @click:clear="clearChunkId"
               @update:model-value="filterChunkIdInput"
             />
@@ -387,11 +401,29 @@ onMounted(() => {
             />
           </td>
           <td>
+            <v-text-field
+              :model-value="filterParams.fetch_size"
+              class="mr-4 mt-2"
+              placeholder="E.g: < 3000"
+              clearable
+              @update:model-value="filterFetchSizeInput"
+            />
+          </td>
+          <td>
             <v-select
               v-model="filterParams.import_status"
               class="mr-4 mt-2"
               :items="selectStates"
               clearable
+            />
+          </td>
+          <td>
+            <v-text-field
+              :model-value="filterParams.import_size"
+              class="mr-4 mt-2"
+              placeholder="E.g: > 5000 < 10000"
+              clearable
+              @update:model-value="filterImportSizeInput"
             />
           </td>
         </tr>
@@ -430,6 +462,9 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
       </template>
+      <template #item.fetch_size="{ value }">
+        {{ value === null ? '-' : filesize(value) }}
+      </template>
       <template #item.import_status="{ item, value }">
         <v-chip
           :color="statusColor[value]"
@@ -463,6 +498,9 @@ onMounted(() => {
             Stage 2: Delete chunk from database
           </v-tooltip>
         </v-btn>
+      </template>
+      <template #item.import_size="{ value }">
+        {{ value === null ? '-' : Intl.NumberFormat().format(value) }}
       </template>
       <template #expanded-row="{ columns, item }">
         <tr>

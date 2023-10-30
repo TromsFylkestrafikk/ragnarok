@@ -171,6 +171,7 @@ class SinkHandler
     {
         $chunk->{$stage . '_status'} = 'in_progress';
         $chunk->{$stage . '_message'} = null;
+        $chunk->{$stage . '_size'} = null;
         $chunk->{$stage . 'ed_at'} = null;
         $chunk->save();
         try {
@@ -184,6 +185,7 @@ class SinkHandler
         }
         $chunk->{$stage . '_status'} = $finalState;
         if ($finalState === 'finished') {
+            $chunk->{$stage . '_size'} = $result;
             $chunk->{$stage . 'ed_at'} = now();
         }
         $chunk->save();

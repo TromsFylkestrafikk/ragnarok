@@ -12,6 +12,7 @@
         "@vitejs/plugin-vue": "^4.2.0",
         "axios": "^1.4.0",
         "dayjs": "^1.11.8",
+        "filesize": "^10.1.0",
         "laravel-echo": "^1.15.1",
         "laravel-vite-plugin": "^0.7.2",
         "lodash": "^4.17.21",

@@ -16,9 +16,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $sink_id
  * @property int $records Number of records imported
  * @property string $fetch_status Raw data retrieval status
+ * @property int $fetch_size Total size of fetched files/data
  * @property string|null $fetch_message Status/error message of last fetch operation
  * @property string|null $fetched_at Fetch timestamp
  * @property string $import_status Import status
+ * @property int $import_size Total number of imported records
  * @property string|null $import_message Status/error message of last import operation
  * @property string|null $imported_at Import timestamp
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -54,9 +56,11 @@ class Chunk extends Model
         'sink_id',
         'records',
         'fetch_status',
+        'fetch_size',
         'fetch_message',
         'fetched_at',
         'import_status',
+        'import_size',
         'import_message',
         'imported_at',
     ];

@@ -12,9 +12,14 @@ trait ChunkFormRules
     public function filterRules(): array
     {
         $states = ['new', 'in_progress', 'finished', 'failed'];
+        // Allow for filters like 'N', '< N', '<N > M', '<= N >= M'
+        $sizeRegex = 'regex:/^\s*(\d+|([<>]=?\s*\d+\s*){1,2})\s*$/';
         return [
+            'chunk_id' => ['nullable', 'regex:/^\s*([^<>\s]+|([<>]=?\s*[^<>\s]+\s*){1,2})\s*$/'],
             'fetch_status' => ['nullable', Rule::in($states)],
+            'fetch_size' => ['nullable', $sizeRegex],
             'import_status' => ['nullable', Rule::in($states)],
+            'import_size' => ['nullable', $sizeRegex],
         ];
     }
 
