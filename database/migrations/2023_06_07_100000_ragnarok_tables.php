@@ -27,10 +27,12 @@ return new class extends Migration
             $table->enum('fetch_status', $statusValues)->default('new')->comment('Raw data retrieval status');
             $table->unsignedInteger('fetch_size')->nullable()->comment('Total size of fetched files/data');
             $table->text('fetch_message')->nullable()->comment('Status/error message of last fetch operation');
+            $table->char('fetch_version', 128)->nullable()->comment('Version/checksum of downloaded chunk');
             $table->timestamp('fetched_at')->nullable()->comment('Fetch timestamp');
             $table->enum('import_status', $statusValues)->default('new')->comment('Import status');
             $table->unsignedInteger('import_size')->nullable()->comment('Total number of imported records');
             $table->text('import_message')->nullable()->comment('Status/error message of last import operation');
+            $table->char('import_version', 128)->nullable()->comment('Import is based on this fetch version/checksum');
             $table->timestamp('imported_at')->nullable()->comment('Import timestamp');
             $table->timestamps();
             $table->unique(['chunk_id', 'sink_id']);

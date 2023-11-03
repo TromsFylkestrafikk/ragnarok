@@ -3,19 +3,17 @@
 namespace App\Services;
 
 use App\Jobs\BroadcastsBatch;
-use App\Jobs\DeleteImportedChunk;
 use App\Jobs\DeleteFetchedChunk;
+use App\Jobs\DeleteImportedChunk;
 use App\Jobs\FetchChunk;
 use App\Jobs\ImportChunk;
 use App\Models\Chunk;
-use Closure;
-use Exception;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use Ragnarok\Sink\Traits\LogPrintf;
-use Throwable;
 
 /**
  * Operations on chunks as batches.
@@ -78,11 +76,7 @@ class ChunkDispatcher
      */
     public function fetch($ids): string|null
     {
-        return $this->dispatchJobs($this->makeBatchJobs(
-            FetchChunk::class,
-            $ids,
-            $this->forceFetch ? null : fn(Chunk $chunk) => $chunk->fetch_status !== 'finished'
-        ), __FUNCTION__);
+        return $this->dispatchJobs($this->makeBatchJobs(FetchChunk::class, $ids), __FUNCTION__);
     }
 
     /**
@@ -94,11 +88,7 @@ class ChunkDispatcher
      */
     public function deleteFetched($ids): string|null
     {
-        return $this->dispatchJobs($this->makeBatchJobs(
-            DeleteFetchedChunk::class,
-            $ids,
-            fn(Chunk $chunk) => $chunk->fetch_status !== 'new'
-        ), __FUNCTION__);
+        return $this->dispatchJobs($this->makeBatchJobs(DeleteFetchedChunk::class, $ids), __FUNCTION__);
     }
 
     /**
@@ -122,11 +112,7 @@ class ChunkDispatcher
      */
     public function deleteImported($ids): string|null
     {
-        return $this->dispatchJobs($this->makeBatchJobs(
-            DeleteImportedChunk::class,
-            $ids,
-            fn (Chunk $chunk)  => $chunk->import_status !== 'new'
-        ), __FUNCTION__);
+        return $this->dispatchJobs($this->makeBatchJobs(DeleteImportedChunk::class, $ids), __FUNCTION__);
     }
 
     /**
@@ -134,17 +120,13 @@ class ChunkDispatcher
      *
      * @param string $jobClass Job to work on chunks
      * @param int[] $ids Chunk model IDs.
-     * @param Closure $filter Filter chunk collections using this callback
      *
      * @return array
      */
-    protected function makeBatchJobs($jobClass, $ids, Closure $filter = null): array
+    protected function makeBatchJobs($jobClass, $ids): array
     {
         $jobs = [];
-        $models = $this->getChunkModels($ids);
-        if ($filter) {
-            $models = $models->filter($filter);
-        }
+        $models = $this->getChunkModels($ids, $jobClass);
         foreach ($models as $chunk) {
             /** @var Chunk $chunk  */
             $jobs[] = new $jobClass($chunk->id);
@@ -164,14 +146,12 @@ class ChunkDispatcher
      */
     protected function makeImportBatchJobs($ids): array
     {
-        $query = Chunk::whereIn('id', $ids)
-            ->whereNot('fetch_status', 'in_progress')
-            ->whereNotIn('import_status', $this->forceImport ? ['in_progress'] : ['in_progress', 'finished']);
-        return $query->get()->reduce(function (?array $jobs, Chunk $chunk) {
-            $jobs[] = ($this->forceFetch || $chunk->fetch_status !== 'finished') ? [
-                new FetchChunk($chunk->id),
-                new ImportChunk($chunk->id),
-            ] : new ImportChunk($chunk->id);
+        $models = $this->getChunkModels($ids, ImportChunk::class);
+        return $models->reduce(function (?array $jobs, Model $chunk) {
+            /** @var Chunk $chunk */
+            $jobs[] = ($this->forceFetch || $chunk->fetch_status !== 'finished')
+                ? [new FetchChunk($chunk->id), new ImportChunk($chunk->id)]
+                : new ImportChunk($chunk->id);
             return $jobs;
         }, []);
     }
@@ -222,14 +202,18 @@ class ChunkDispatcher
      *
      * @param int[] $chunkIds The model ID of chunks.
      *
-     * @return Collection
+     * @return Collection<Chunk>
      */
-    protected function getChunkModels($chunkIds): Collection
+    protected function getChunkModels(array $chunkIds, string $jobClass): Collection
     {
-        $chunks = Chunk::where('sink_id', $this->sinkId)->whereIn('id', $chunkIds)->get();
-        if ($chunks->count() !== count($chunkIds)) {
-            throw new Exception(sprintf('Mismatch between requested (%d) and actual chunks (%d)', count($chunkIds), $chunks->count()));
-        }
+        $query = Chunk::where('sink_id', $this->sinkId)->whereIn('id', $chunkIds);
+        $scope = [
+            FetchChunk::class => $this->forceFetch ? 'canFetch' : 'needFetch',
+            ImportChunk::class => $this->forceImport ? 'canImport' : 'needImport',
+            DeleteFetchedChunk::class => 'canDeleteFetched',
+            DeleteImportedChunk::class => 'canDeleteImported',
+        ][$jobClass];
+        $chunks = $query->$scope()->get();
         return $chunks;
     }
 }

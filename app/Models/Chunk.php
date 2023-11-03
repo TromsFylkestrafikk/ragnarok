@@ -4,41 +4,65 @@ namespace App\Models;
 
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Database\Eloquent\BroadcastsEvents;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * App\Models\Chunk
+ * \App\Models\Chunk
+ *
+ * @SuppressWarnings(PHPMD.UnusedFormalParameter)
  *
  * @property int $id Chunk ID
  * @property string $chunk_id Chunk id as given by source
  * @property string $sink_id
  * @property int $records Number of records imported
  * @property string $fetch_status Raw data retrieval status
- * @property int $fetch_size Total size of fetched files/data
+ * @property int|null $fetch_size Total size of fetched files/data
  * @property string|null $fetch_message Status/error message of last fetch operation
+ * @property string|null $fetch_version Version/checksum of downloaded chunk
  * @property string|null $fetched_at Fetch timestamp
  * @property string $import_status Import status
- * @property int $import_size Total number of imported records
+ * @property int|null $import_size Total number of imported records
  * @property string|null $import_message Status/error message of last import operation
+ * @property string|null $import_version Import is based on this fetch version/checksum
  * @property string|null $imported_at Import timestamp
+ * @property bool $need_fetch
+ * @property bool $need_import
+ * @property bool $can_delete_fetched
+ * @property bool $can_delete_imported
+ * @property bool $is_modified
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk query()
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereChunkId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereFetchStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereFetchedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereImportId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereImportStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereImportedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereRecords($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereSinkId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|Chunk whereUpdatedAt($value)
+ * @property-read \App\Models\Sink|null $sink
+ * @method static Builder|Chunk canDeleteFetched()
+ * @method static Builder|Chunk canDeleteImported()
+ * @method static Builder|Chunk canFetch()
+ * @method static Builder|Chunk canImport()
+ * @method static Builder|Chunk isModified()
+ * @method static Builder|Chunk needFetch()
+ * @method static Builder|Chunk needImport()
+ * @method static Builder|Chunk newModelQuery()
+ * @method static Builder|Chunk newQuery()
+ * @method static Builder|Chunk query()
+ * @method static Builder|Chunk whereChunkId($value)
+ * @method static Builder|Chunk whereCreatedAt($value)
+ * @method static Builder|Chunk whereFetchMessage($value)
+ * @method static Builder|Chunk whereFetchSize($value)
+ * @method static Builder|Chunk whereFetchStatus($value)
+ * @method static Builder|Chunk whereFetchVersion($value)
+ * @method static Builder|Chunk whereFetchedAt($value)
+ * @method static Builder|Chunk whereId($value)
+ * @method static Builder|Chunk whereImportMessage($value)
+ * @method static Builder|Chunk whereImportSize($value)
+ * @method static Builder|Chunk whereImportStatus($value)
+ * @method static Builder|Chunk whereImportVersion($value)
+ * @method static Builder|Chunk whereImportedAt($value)
+ * @method static Builder|Chunk whereRecords($value)
+ * @method static Builder|Chunk whereSinkId($value)
+ * @method static Builder|Chunk whereUpdatedAt($value)
  * @mixin \Eloquent
  */
 class Chunk extends Model
@@ -58,12 +82,16 @@ class Chunk extends Model
         'fetch_status',
         'fetch_size',
         'fetch_message',
+        'fetch_version',
         'fetched_at',
         'import_status',
         'import_size',
         'import_message',
+        'import_version',
         'imported_at',
     ];
+
+    protected $appends = ['need_fetch', 'can_delete_fetched', 'need_import', 'can_delete_imported', 'is_modified'];
 
     public function sink(): BelongsTo
     {
@@ -76,5 +104,135 @@ class Chunk extends Model
             'updated' => new PrivateChannel('App.Models.Chunk'),
             default => [],
         };
+    }
+
+    /**
+     * Query scope ::canFetch()
+     *
+     * Chunk is in state where fetch is allowed.
+     */
+    public function scopeCanFetch(Builder $query): void
+    {
+        $query->whereNot('fetch_status', 'in_progress');
+    }
+
+    /**
+     * Query scope ::needFetch()
+     *
+     * Chunk is in state where fetch is allowed.
+     */
+    public function scopeNeedFetch(Builder $query): void
+    {
+        $query->whereNotIn('fetch_status', ['in_progress', 'finished']);
+    }
+
+    /**
+     * Query scope ::canDeleteFetched()
+     */
+    public function scopeCanDeleteFetched(Builder $query): void
+    {
+        $query->whereNot('fetch_status', 'new')->whereNot('import_status', 'in_progress');
+    }
+
+    /**
+     * Query scope ::canImport()
+     *
+     * Chunk is in a state where import is allowed.
+     */
+    public function scopeCanImport(Builder $query): void
+    {
+        $query->whereNot('fetch_status', 'in_progress')
+            ->whereNot('import_status', 'in_progress');
+    }
+
+    /**
+     * Query scope ::needImport()
+     *
+     * Chunk is in state where import is required to be in sync with upstream
+     * data.
+     */
+    public function scopeNeedImport(Builder $query): void
+    {
+        /** @var Chunk $query */
+        $query->canImport()
+            ->where(function (Builder $query) {
+                $query->whereNot('import_status', 'finished')->orWhere->isModified();
+            });
+    }
+
+    /**
+     * Query scope ::canDeleteImported()
+     */
+    public function scopeCanDeleteImported(Builder $query): void
+    {
+        $query->whereNot('import_status', 'new');
+    }
+
+    /**
+     * Query scope ::isModified()
+     *
+     * Chunk is fetched and imported, but the imported version differ.
+     */
+    public function scopeIsModified(Builder $query): void
+    {
+        $query->where('fetch_status', 'finished')
+            ->where('import_status', 'finished')
+            ->whereColumn('fetch_version', '<>', 'import_version');
+    }
+
+    /**
+     * Attribute ->need_fetch
+     */
+    protected function needFetch(): Attribute
+    {
+        return Attribute::get(
+            fn (mixed $val, array $attr = []) => !in_array($attr['fetch_status'], array('in_progress', 'finished'))
+        );
+    }
+
+    /**
+     * Attribute ->can_delete_fetched
+     */
+    protected function canDeleteFetched(): Attribute
+    {
+        return Attribute::get(
+            fn (mixed $val, array $attr = []) =>
+                !in_array($attr['fetch_status'], array('in_progress', 'new'))
+                    && $attr['import_status'] !== 'in_progress'
+        );
+    }
+
+    /**
+     * Attribute ->need_import
+     */
+    protected function needImport(): Attribute
+    {
+        return Attribute::get(function (mixed $val, array $attr = []) {
+            return ($attr['fetch_status'] !== 'in_progress'
+                    && !in_array($attr['import_status'], ['in_progress', 'finished']))
+                || $this->is_modified;
+        });
+    }
+
+    /**
+     * Attribute ->can_delete_imported
+     */
+    protected function canDeleteImported(): Attribute
+    {
+        return Attribute::get(function (mixed $val, array $attr = []) {
+            return !in_array($attr['import_status'], ['in_progress', 'new']);
+        });
+    }
+
+    /**
+     * Attribute ->is_modified
+     */
+    protected function isModified(): Attribute
+    {
+        return Attribute::get(function (mixed $val, array $attr = []) {
+            return $attr['fetch_status'] === 'finished'
+                && $attr['import_status'] === 'finished'
+                && $attr['fetch_version'] !== $attr['import_version'];
+        });
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Sink;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Console\Scheduling\Schedule;
 
 /**
@@ -46,6 +47,11 @@ class RagnarokApi
      */
     public function schedule(Schedule $schedule): RagnarokApi
     {
+        // This is ran/called during boot, and if DB isn't properly
+        // migrated/installed this will choke.
+        if (!Schema::hasTable('ragnarok_sinks')) {
+            return $this;
+        }
         $this->getSinkHandlers()->each(function (SinkHandler $handler) use ($schedule) {
             $importEvent = $schedule->call([$handler, 'importNewChunks']);
             if ($handler->src->cron) {

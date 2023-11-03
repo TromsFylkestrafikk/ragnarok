@@ -429,18 +429,20 @@ onMounted(() => {
         </tr>
       </template>
       <template #item.fetch_status="{ item, value }">
-        <v-chip
-          :color="statusColor[value]"
-          :prepend-icon="item.fetch_status === 'failed' ? 'mdi-skull' : null"
-          @click="toggleExpand(item, 'fetch_status')"
-        >
-          {{ value }}
-          <v-tooltip v-if="item.fetched_at" activator="parent">
-            {{ prettyDate(item.fetched_at) }}
-          </v-tooltip>
-        </v-chip>
+        <v-badge :model-value="item.is_modified" color="warning" content="!">
+          <v-chip
+            :color="statusColor[value]"
+            :prepend-icon="item.fetch_status === 'failed' ? 'mdi-skull' : null"
+            @click="toggleExpand(item, 'fetch_status')"
+          >
+            {{ value }}
+            <v-tooltip v-if="item.fetched_at" activator="parent">
+              {{ prettyDate(item.fetched_at) }}
+            </v-tooltip>
+          </v-chip>
+        </v-badge>
         <v-btn
-          v-if="props.permissions.operations.fetch"
+          v-if="props.permissions.operations.fetch && item.need_fetch"
           icon
           variant="plain"
           @click="singleChunkOperation(item.id, 'fetch')"
@@ -451,7 +453,7 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="props.permissions.operations.deleteFetched && item.fetch_status !=='new'"
+          v-if="props.permissions.operations.deleteFetched && item.can_delete_fetched"
           icon
           variant="plain"
           @click="confirmChunkDeletion(item.id)"
@@ -477,7 +479,7 @@ onMounted(() => {
           </v-tooltip>
         </v-chip>
         <v-btn
-          v-if="props.permissions.operations.import"
+          v-if="props.permissions.operations.import && item.need_import"
           icon
           variant="plain"
           @click="singleChunkOperation(item.id, 'import')"
@@ -488,7 +490,7 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="props.permissions.operations.deleteImported && item.import_status !== 'new'"
+          v-if="props.permissions.operations.deleteImported && item.can_delete_imported"
           icon
           variant="plain"
           @click="confirmImportDeletion(item.id)"

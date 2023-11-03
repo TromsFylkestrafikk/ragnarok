@@ -21,6 +21,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
   cancel.
 - Centralized error/exception handling with feedback/presentation on
   front end.
+- Indication of mismatched between downloaded chunk and imported versions.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.
