@@ -225,7 +225,9 @@ async function submitChunkOperation(event) {
 // Helpers.
 // -----------------------------------------------------------------------------
 function updateChunk(src, dest) {
-    forEach(src, (val, key) => dest[key] = val);
+    forEach(src, (val, key) => {
+        dest[key] = val;
+    });
 }
 
 function prettyDate(dateStr) {
