@@ -22,6 +22,8 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Centralized error/exception handling with feedback/presentation on
   front end.
 - Indication of mismatched between downloaded chunk and imported versions.
+- Queued chunks in a batch operation will not be able to operate on
+  and have a gray status until completed/canceled.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.

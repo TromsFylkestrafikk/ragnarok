@@ -37,11 +37,8 @@ class DeleteFetchedChunk implements ShouldQueue
      */
     public function handle(): void
     {
-        /** @var Chunk|null */
-        $chunk = Chunk::find($this->modelId);
-        if (!$chunk) {
-            return;
-        }
+        /** @var Chunk */
+        $chunk = Chunk::findOrFail($this->modelId);
         Ragnarok::getSinkHandler($chunk->sink_id)->removeChunk($chunk);
         self::broadcast($chunk->sink_id, $this->batch(), 1);
     }

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Chunk;
 use Illuminate\Bus\Batch;
+use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Bus;
-use Response as ResponseResponse;
 
 class BatchApiController extends Controller
 {
@@ -47,7 +48,7 @@ class BatchApiController extends Controller
      *
      * @return Response
      */
-    public function destroy($batchId): Response
+    public function destroy($batchId): Response|ResponseFactory
     {
         $this->authorize('delete batches');
         $batch = Bus::findBatch($batchId);
@@ -58,6 +59,9 @@ class BatchApiController extends Controller
             return response(['status' => false, 'message' => 'Batch is not running', 'batchId' => $batch->id]);
         }
         $batch->cancel();
+        // Remove batch info on non-running chunks
+        Chunk::whereFetchBatch($batchId)->whereNot('fetch_status', 'in_progress')->update(['fetch_batch' => null]);
+        Chunk::whereImportBatch($batchId)->whereNot('import_status', 'in_progress')->update(['import_batch' => null]);
         return response([
             'status' => true,
             'message' => 'Batch cancelled',

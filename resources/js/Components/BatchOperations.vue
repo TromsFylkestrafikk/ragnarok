@@ -48,18 +48,15 @@ onMounted(() => {
         });
     });
 
-    Echo.private('sinks').listen(
-        'ChunkOperationUpdate',
-        (event) => {
-            if (event.batch.totalJobs < 2) {
-                return;
-            }
-            if (props.sinkId && !event.batch.name.startsWith(`${props.sinkId}: `)) {
-                return;
-            }
-            replaceBatch(event.batch);
+    Echo.private('sinks').listen('ChunkOperationUpdate', (event) => {
+        if (event.batch.totalJobs < 2) {
+            return;
         }
-    );
+        if (props.sinkId && !event.batch.name.startsWith(`${props.sinkId}: `)) {
+            return;
+        }
+        replaceBatch(event.batch);
+    });
 });
 
 </script>

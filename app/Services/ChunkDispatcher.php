@@ -25,10 +25,23 @@ use Ragnarok\Sink\Traits\LogPrintf;
  */
 class ChunkDispatcher
 {
+    use BroadcastsBatch;
     use LogPrintf;
 
+    /**
+     * @var bool
+     */
     protected $forceImport = false;
+
+    /**
+     * @var bool
+     */
     protected $forceFetch = false;
+
+    /**
+     * @var mixed[]
+     */
+    protected $chunkBatchMap = [];
 
     public function __construct(protected string $sinkId)
     {
@@ -125,11 +138,14 @@ class ChunkDispatcher
      */
     protected function makeBatchJobs($jobClass, $ids): array
     {
+        $this->chunkBatchMap = [];
         $jobs = [];
         $models = $this->getChunkModels($ids, $jobClass);
         foreach ($models as $chunk) {
             /** @var Chunk $chunk  */
             $jobs[] = new $jobClass($chunk->id);
+            // Collect the chunks that should attach batch ID to them.
+            $this->addPendingChunk($chunk->id, $jobClass);
         };
         return $jobs;
     }
@@ -146,12 +162,16 @@ class ChunkDispatcher
      */
     protected function makeImportBatchJobs($ids): array
     {
+        $this->chunkBatchMap = [];
         $models = $this->getChunkModels($ids, ImportChunk::class);
         return $models->reduce(function (?array $jobs, Model $chunk) {
             /** @var Chunk $chunk */
-            $jobs[] = ($this->forceFetch || $chunk->fetch_status !== 'finished')
-                ? [new FetchChunk($chunk->id), new ImportChunk($chunk->id)]
-                : new ImportChunk($chunk->id);
+            $needFetch = $this->forceFetch || $chunk->fetch_status !== 'finished';
+            $jobs[] = $needFetch ? [new FetchChunk($chunk->id), new ImportChunk($chunk->id)] : new ImportChunk($chunk->id);
+            if ($needFetch) {
+                $this->addPendingChunk($chunk->id, FetchChunk::class);
+            }
+            $this->addPendingChunk($chunk->id, ImportChunk::class);
             return $jobs;
         }, []);
     }
@@ -185,6 +205,7 @@ class ChunkDispatcher
                 $batch->id
             ));
         })->finally(function (Batch $batch) use ($sinkId) {
+            static::resetChunksBatch($batch);
             if ($batch->pendingJobs && $batch->failedJobs && !$batch->cancelled()) {
                 Log::notice(sprintf("[%s]: Batch run is complete with failures. Cancelling ...", $batch->name));
                 $batch->cancel();
@@ -192,6 +213,7 @@ class ChunkDispatcher
             }
             BroadcastsBatch::broadcast($sinkId, $batch);
         })->allowFailures()->onQueue('data')->dispatch();
+        $this->updateChunksBatch($batch);
         BroadcastsBatch::broadcast($sinkId, $batch);
         $this->info("[%s]: Initiated processing of %d jobs. Batch ID: %s", $batch->name, $batch->totalJobs, $batch->id);
         return $batch->id;
@@ -213,7 +235,43 @@ class ChunkDispatcher
             DeleteFetchedChunk::class => 'canDeleteFetched',
             DeleteImportedChunk::class => 'canDeleteImported',
         ][$jobClass];
-        $chunks = $query->$scope()->get();
-        return $chunks;
+        return $query->$scope()->get();
+    }
+
+    protected function addPendingChunk(int $chunkId, string $jobClass): void
+    {
+        $batchColumn = [
+            FetchChunk::class => 'fetch_batch',
+            ImportChunk::class => 'import_batch',
+            DeleteFetchedChunk::class => 'fetch_batch',
+            DeleteImportedChunk::class => 'import_batch',
+        ][$jobClass];
+        $this->chunkBatchMap[$batchColumn][] = $chunkId;
+    }
+
+    /**
+     * Add batch info to chunks in current batch.
+     *
+     * The chunks added are collected during chunk job selection at an earlier
+     * stage.
+     */
+    protected function updateChunksBatch(Batch $batch): void
+    {
+        foreach (['fetch_batch', 'import_batch'] as $column) {
+            if (!empty($this->chunkBatchMap[$column])) {
+                Chunk::whereIn('id', $this->chunkBatchMap[$column])->update([$column => $batch->id]);
+            }
+        }
+    }
+
+    /**
+     * Reset batch info on chunks connected to given batch.
+     */
+    protected static function resetChunksBatch(Batch $batch): void
+    {
+        Chunk::whereFetchBatch($batch->id)->orWhere('import_batch', $batch->id)->update([
+            'fetch_batch' => null,
+            'import_batch' => null,
+        ]);
     }
 }

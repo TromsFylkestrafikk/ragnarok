@@ -37,10 +37,7 @@ class FetchChunk implements ShouldQueue
      */
     public function handle(): void
     {
-        $chunk = Chunk::find($this->modelId);
-        if (!$chunk) {
-            return;
-        }
+        $chunk = Chunk::findOrFail($this->modelId);
         Ragnarok::getSinkHandler($chunk->sink_id)->fetchChunk($chunk);
         self::broadcast($chunk->sink_id, $this->batch(), 1);
     }

@@ -18,6 +18,9 @@ class ChunkOperationUpdate implements ShouldBroadcast
     use InteractsWithSockets;
     use SerializesModels;
 
+    /**
+     * @var mixed[]
+     */
     public $batch;
 
     /**

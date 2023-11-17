@@ -23,17 +23,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $fetch_size Total size of fetched files/data
  * @property string|null $fetch_message Status/error message of last fetch operation
  * @property string|null $fetch_version Version/checksum of downloaded chunk
+ * @property string|null $fetch_batch Batch ID of current fetch operation
  * @property string|null $fetched_at Fetch timestamp
  * @property string $import_status Import status
  * @property int|null $import_size Total number of imported records
  * @property string|null $import_message Status/error message of last import operation
  * @property string|null $import_version Import is based on this fetch version/checksum
+ * @property string|null $import_batch Batch ID of current import operation
  * @property string|null $imported_at Import timestamp
- * @property bool $need_fetch
- * @property bool $need_import
  * @property bool $can_delete_fetched
  * @property bool $can_delete_imported
  * @property bool $is_modified
+ * @property bool $need_fetch
+ * @property bool $need_import
+ * @property bool $not_in_batch
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\Sink|null $sink
@@ -46,15 +49,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static Builder|Chunk needImport()
  * @method static Builder|Chunk newModelQuery()
  * @method static Builder|Chunk newQuery()
+ * @method static Builder|Chunk notInBatch()
  * @method static Builder|Chunk query()
  * @method static Builder|Chunk whereChunkId($value)
  * @method static Builder|Chunk whereCreatedAt($value)
+ * @method static Builder|Chunk whereFetchBatch($value)
  * @method static Builder|Chunk whereFetchMessage($value)
  * @method static Builder|Chunk whereFetchSize($value)
  * @method static Builder|Chunk whereFetchStatus($value)
  * @method static Builder|Chunk whereFetchVersion($value)
  * @method static Builder|Chunk whereFetchedAt($value)
  * @method static Builder|Chunk whereId($value)
+ * @method static Builder|Chunk whereImportBatch($value)
  * @method static Builder|Chunk whereImportMessage($value)
  * @method static Builder|Chunk whereImportSize($value)
  * @method static Builder|Chunk whereImportStatus($value)
@@ -106,6 +112,11 @@ class Chunk extends Model
         };
     }
 
+    public function scopeNotInBatch(Builder $query): void
+    {
+        $query->whereNull('fetch_batch')->whereNull('import_batch');
+    }
+
     /**
      * Query scope ::canFetch()
      *
@@ -113,7 +124,8 @@ class Chunk extends Model
      */
     public function scopeCanFetch(Builder $query): void
     {
-        $query->whereNot('fetch_status', 'in_progress');
+        /** @var Chunk $query */
+        $query->notInBatch()->whereNot('fetch_status', 'in_progress');
     }
 
     /**
@@ -123,7 +135,8 @@ class Chunk extends Model
      */
     public function scopeNeedFetch(Builder $query): void
     {
-        $query->whereNotIn('fetch_status', ['in_progress', 'finished']);
+        /** @var Chunk $query */
+        $query->notInBatch()->whereNotIn('fetch_status', ['in_progress', 'finished']);
     }
 
     /**
@@ -131,7 +144,8 @@ class Chunk extends Model
      */
     public function scopeCanDeleteFetched(Builder $query): void
     {
-        $query->whereNot('fetch_status', 'new')->whereNot('import_status', 'in_progress');
+        /** @var Chunk $query */
+        $query->notInBatch()->whereNot('fetch_status', 'new')->whereNot('import_status', 'in_progress');
     }
 
     /**
@@ -141,7 +155,8 @@ class Chunk extends Model
      */
     public function scopeCanImport(Builder $query): void
     {
-        $query->whereNot('fetch_status', 'in_progress')
+        /** @var Chunk $query */
+        $query->notInBatch()->whereNot('fetch_status', 'in_progress')
             ->whereNot('import_status', 'in_progress');
     }
 
@@ -181,12 +196,23 @@ class Chunk extends Model
     }
 
     /**
+     * Attribute ->not_in_batch
+     */
+    protected function notInBatch(): Attribute
+    {
+        return Attribute::get(
+            fn (mixed $val, array $attr = []) => empty($attr['fetch_batch']) && empty($attr['import_batch'])
+        );
+    }
+
+    /**
      * Attribute ->need_fetch
      */
     protected function needFetch(): Attribute
     {
         return Attribute::get(
-            fn (mixed $val, array $attr = []) => !in_array($attr['fetch_status'], array('in_progress', 'finished'))
+            fn (mixed $val, array $attr = []) => $this->not_in_batch
+                && !in_array($attr['fetch_status'], array('in_progress', 'finished'))
         );
     }
 
@@ -196,9 +222,9 @@ class Chunk extends Model
     protected function canDeleteFetched(): Attribute
     {
         return Attribute::get(
-            fn (mixed $val, array $attr = []) =>
-                !in_array($attr['fetch_status'], array('in_progress', 'new'))
-                    && $attr['import_status'] !== 'in_progress'
+            fn (mixed $val, array $attr = []) => $this->not_in_batch
+                && !in_array($attr['fetch_status'], array('in_progress', 'new'))
+                && $attr['import_status'] !== 'in_progress'
         );
     }
 
@@ -207,11 +233,13 @@ class Chunk extends Model
      */
     protected function needImport(): Attribute
     {
-        return Attribute::get(function (mixed $val, array $attr = []) {
-            return ($attr['fetch_status'] !== 'in_progress'
-                    && !in_array($attr['import_status'], ['in_progress', 'finished']))
-                || $this->is_modified;
-        });
+        return Attribute::get(
+            fn (mixed $val, array $attr = []) =>
+                $this->not_in_batch
+                && (($attr['fetch_status'] !== 'in_progress'
+                     && !in_array($attr['import_status'], ['in_progress', 'finished']))
+                    || $this->is_modified)
+        );
     }
 
     /**
@@ -219,9 +247,11 @@ class Chunk extends Model
      */
     protected function canDeleteImported(): Attribute
     {
-        return Attribute::get(function (mixed $val, array $attr = []) {
-            return !in_array($attr['import_status'], ['in_progress', 'new']);
-        });
+        return Attribute::get(
+            fn (mixed $val, array $attr = []) =>
+                $this->not_in_batch
+                && !in_array($attr['import_status'], ['in_progress', 'new'])
+        );
     }
 
     /**
@@ -229,10 +259,11 @@ class Chunk extends Model
      */
     protected function isModified(): Attribute
     {
-        return Attribute::get(function (mixed $val, array $attr = []) {
-            return $attr['fetch_status'] === 'finished'
+        return Attribute::get(
+            fn (mixed $val, array $attr = []) =>
+                $attr['fetch_status'] === 'finished'
                 && $attr['import_status'] === 'finished'
-                && $attr['fetch_version'] !== $attr['import_version'];
-        });
+                && $attr['fetch_version'] !== $attr['import_version']
+        );
     }
 }

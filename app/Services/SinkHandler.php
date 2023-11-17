@@ -26,7 +26,7 @@ class SinkHandler
     public $src;
 
     /**
-     * @var ChunkDispatcher
+     * @var ChunkDispatcher|null
      */
     protected $dispatcher = null;
 
@@ -181,10 +181,12 @@ class SinkHandler
             $this->error("Got exception in %s stage where final state should be %s", $stage, $finalState);
             $chunk->{$stage . '_status'} = 'failed';
             $chunk->{$stage . '_message'} = Utils::exceptToStr($except);
+            $chunk->{$stage . '_batch'} = null;
             $chunk->save();
             throw $except;
         }
         $chunk->{$stage . '_status'} = $finalState;
+        $chunk->{$stage . '_batch'} = null;
         if ($finalState === 'finished') {
             $chunk->{$stage . '_size'} = $result;
             $chunk->{$stage . '_version'} = $stage === 'fetch' ? $this->src->getChunkVersion($chunk->chunk_id) : $chunk->fetch_version;

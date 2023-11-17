@@ -47,6 +47,7 @@ class ChunkController extends Controller
             'message' => $batchId ? "$operation job dispatched" : 'Nothing to do',
             'status' => (bool) $batchId,
             'batchId' => $batchId,
+            'chunk' => Chunk::find($chunk->id),
         ]);
     }
 }

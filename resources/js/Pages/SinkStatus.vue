@@ -33,11 +33,11 @@ const headers = ref([
 ]);
 
 const expanded = ref([]);
-const items = ref([]);
-const itemsLength = ref(0);
-const itemsKeyed = computed(() => {
+const chunks = ref([]);
+const chunksCount = ref(0);
+const chunksKeyed = computed(() => {
     const ret = {};
-    items.value.forEach((chunk) => {
+    chunks.value.forEach((chunk) => {
         ret[chunk.id] = chunk;
     });
     return ret;
@@ -62,7 +62,7 @@ const execParams = reactive({
     targetSet: 'selection',
 });
 
-const selectionCount = computed(() => (execParams.targetSet === 'selection' ? execParams.selection.length : itemsLength.value));
+const selectionCount = computed(() => (execParams.targetSet === 'selection' ? execParams.selection.length : chunksCount.value));
 const execForm = ref(null);
 const execRules = reactive({
     operation: [(value) => !!value || 'Please select an operation'],
@@ -113,8 +113,12 @@ const filterImportSizeInput = filterInputFactory('import_size');
 
 const searchDummy = ref(null);
 
+function touchSearch() {
+    searchDummy.value = String(Date.now());
+}
+
 // Reducer for triggering <v-data-table-remote :search=..> entry
-watch(filterParams, () => searchDummy.value = String(Date.now()));
+watch(filterParams, touchSearch);
 
 function clearChunkId() {
     filterChunkIdInput(null);
@@ -131,6 +135,12 @@ function resetSelection() {
 }
 
 const { statusColor } = useStatus();
+
+function getStatusColor(item, stage) {
+    const batchColumn = `${stage}_batch`;
+    const statusColumn = `${stage}_status`;
+    return item[batchColumn] && item[statusColumn] !== 'in_progress' ? 'gray' : statusColor.value[item[statusColumn]];
+}
 
 // -----------------------------------------------------------------------------
 // Confirmation dialogs and feedback (snackbar)
@@ -167,61 +177,6 @@ const snackProps = reactive({
 });
 
 // -----------------------------------------------------------------------------
-// Loading and operation execution!
-// -----------------------------------------------------------------------------
-const loading = ref(true);
-const ajaxing = ref(false);
-
-async function loadItems({ page, itemsPerPage, sortBy }) {
-    loading.value = true;
-    const state = await axios.get(`/api/sinks/${props.sink.id}/chunks`, {
-        params: {
-            page,
-            itemsPerPage,
-            sortBy,
-            ...filterParams,
-        },
-    }).finally(() => loading.value = false);
-    items.value = state.data.chunks;
-    itemsLength.value = state.data.meta.total;
-}
-
-function singleChunkOperation(id, operation) {
-    ajaxing.value = true;
-    return axios.patch(`/api/sinks/${props.sink.id}/chunks/${id}`, { operation }).finally(() => ajaxing.value = false);
-}
-
-/**
- * Perform actual operation on chunk selection
- */
-async function execChunkOperation() {
-    ajaxing.value = true;
-    return axios.patch(`/api/sinks/${props.sink.id}`, {
-        ...filterParams,
-        ...execParams,
-    }).then((result) => {
-        snackProps.color = result.data.status ? null : 'warning';
-        snackProps.message = `Server said: ${result.data.message}`;
-        snackProps.model = true;
-    }).finally(() => {
-        ajaxing.value = false;
-        resetOperationForm();
-    });
-}
-
-async function submitChunkOperation(event) {
-    const validation = await event;
-    if (!validation.valid) {
-        return;
-    }
-    if (needConfirmation.value) {
-        confDiags.execOp = true;
-        return;
-    }
-    execChunkOperation();
-}
-
-// -----------------------------------------------------------------------------
 // Helpers.
 // -----------------------------------------------------------------------------
 function updateChunk(src, dest) {
@@ -244,13 +199,8 @@ function toggleExpand(chunk, statusProperty) {
     expanded.value = expanded.value.includes(chunk.id) ? [] : [chunk.id];
 }
 
-/* function setSelectionState(column, state) {
- *     execParams.selection.forEach((chunkId) => itemsKeyed.value[chunkId] && (itemsKeyed.value[chunkId][column] = state));
- * }
- */
-
 function findAndUpdate(newChunk) {
-    const found = itemsKeyed.value[newChunk.id] || null;
+    const found = chunksKeyed.value[newChunk.id] || null;
     if (found) {
         updateChunk(newChunk, found);
     }
@@ -263,10 +213,77 @@ function removeFromSelection(idToRemove) {
     }
 }
 
+// -----------------------------------------------------------------------------
+// Loading and operation execution!
+// -----------------------------------------------------------------------------
+const loading = ref(true);
+const ajaxing = ref(false);
+
+async function loadChunks({ page, itemsPerPage, sortBy }) {
+    loading.value = true;
+    const state = await axios.get(`/api/sinks/${props.sink.id}/chunks`, {
+        params: {
+            page,
+            itemsPerPage,
+            sortBy,
+            ...filterParams,
+        },
+    }).finally(() => loading.value = false);
+    chunks.value = state.data.chunks;
+    chunksCount.value = state.data.meta.total;
+}
+
+function singleChunkOperation(id, operation) {
+    ajaxing.value = true;
+    return axios.patch(`/api/sinks/${props.sink.id}/chunks/${id}`, { operation })
+        .then((result) => findAndUpdate(result.data.chunk))
+        .finally(() => ajaxing.value = false);
+}
+
+/**
+ * Perform actual operation on chunk selection
+ */
+async function execChunkOperation() {
+    ajaxing.value = true;
+    return axios.patch(`/api/sinks/${props.sink.id}`, {
+        ...filterParams,
+        ...execParams,
+    }).then((result) => {
+        snackProps.color = result.data.status ? null : 'warning';
+        snackProps.message = `Server said: ${result.data.message}`;
+        snackProps.model = true;
+        // Reload chunks to retrieve new state. Mass-updated chunks aren't
+        // broadcasted so we need to force it.
+        touchSearch();
+    }).finally(() => {
+        ajaxing.value = false;
+        resetOperationForm();
+    });
+}
+
+async function submitChunkOperation(event) {
+    const validation = await event;
+    if (!validation.valid) {
+        return;
+    }
+    if (needConfirmation.value) {
+        confDiags.execOp = true;
+        return;
+    }
+    execChunkOperation();
+}
+
 onMounted(() => {
     Echo.private('App.Models.Chunk').listen('.ChunkUpdated', (event) => {
         findAndUpdate(event.model);
         removeFromSelection(event.model.id);
+    });
+    Echo.private('sinks').listen('ChunkOperationUpdate', (event) => {
+        // Re-load chunks on completed cancellation. Cancelled batches will
+        // mass-update chunks which aren't broadcasted.
+        if (event.batch.progress >= 100 && event.batch.cancelledAt) {
+            touchSearch();
+        }
     });
 });
 </script>
@@ -288,13 +305,13 @@ onMounted(() => {
       v-model="execParams.selection"
       v-model:expanded="expanded"
       :headers="headers"
-      :items="items"
-      :items-length="itemsLength"
+      :items="chunks"
+      :items-length="chunksCount"
       items-per-page="10"
       :loading="loading"
       :search="searchDummy"
       :show-select="showSelectCheckboxes"
-      @update:options="loadItems"
+      @update:options="loadChunks"
     >
       <template #top>
         <v-card color="grey-lighten-4" elevation="0">
@@ -354,7 +371,7 @@ onMounted(() => {
                         :label="`Selected chunks in filtered set (${execParams.selection.length})`"
                         value="selection"
                       />
-                      <v-radio :label="`Entire filtered set (${itemsLength})`" value="range" />
+                      <v-radio :label="`Entire filtered set (${chunksCount})`" value="range" />
                     </v-radio-group>
                   </v-col>
                   <v-col cols="12" sm="6">
@@ -433,8 +450,9 @@ onMounted(() => {
       <template #item.fetch_status="{ item, value }">
         <v-badge :model-value="item.is_modified" color="warning" content="!">
           <v-chip
-            :color="statusColor[value]"
+            :color="getStatusColor(item, 'fetch')"
             :prepend-icon="item.fetch_status === 'failed' ? 'mdi-skull' : null"
+            :append-icon="item.fetch_batch ? 'mdi-clock-outline' : null"
             @click="toggleExpand(item, 'fetch_status')"
           >
             {{ value }}
@@ -469,10 +487,11 @@ onMounted(() => {
       <template #item.fetch_size="{ value }">
         {{ value === null ? '-' : filesize(value) }}
       </template>
-      <template #item.import_status="{ item, value }">
+      <template #item.import_status="{ item }">
         <v-chip
-          :color="statusColor[value]"
+          :color="getStatusColor(item, 'import')"
           :prepend-icon="item.import_status === 'failed' ? 'mdi-skull' : null"
+          :append-icon="item.import_batch ? 'mdi-clock-outline' : null"
           @click="toggleExpand(item, 'import_status')"
         >
           {{ item.import_status }}
