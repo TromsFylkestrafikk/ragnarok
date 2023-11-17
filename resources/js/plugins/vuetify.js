@@ -8,12 +8,10 @@
 import '@mdi/font/css/materialdesignicons.css';
 import 'vuetify/styles';
 import { createVuetify } from 'vuetify';
-import { VDataTable, VDataTableServer } from 'vuetify/labs/VDataTable';
 import { aliases, mdi } from 'vuetify/iconsets/mdi';
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
-    components: { VDataTable, VDataTableServer },
     icons: {
         defaultSet: 'mdi',
         aliases,
