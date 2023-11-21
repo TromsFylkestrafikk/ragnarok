@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id Chunk ID
  * @property string $chunk_id Chunk id as given by source
  * @property string $sink_id
- * @property int $records Number of records imported
+ * @property string|null $chunk_date What moment in time this chunk belongs to
  * @property string $fetch_status Raw data retrieval status
  * @property int|null $fetch_size Total size of fetched files/data
  * @property string|null $fetch_message Status/error message of last fetch operation
@@ -51,6 +51,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static Builder|Chunk newQuery()
  * @method static Builder|Chunk notInBatch()
  * @method static Builder|Chunk query()
+ * @method static Builder|Chunk whereChunkDate($value)
  * @method static Builder|Chunk whereChunkId($value)
  * @method static Builder|Chunk whereCreatedAt($value)
  * @method static Builder|Chunk whereFetchBatch($value)
@@ -66,7 +67,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static Builder|Chunk whereImportStatus($value)
  * @method static Builder|Chunk whereImportVersion($value)
  * @method static Builder|Chunk whereImportedAt($value)
- * @method static Builder|Chunk whereRecords($value)
  * @method static Builder|Chunk whereSinkId($value)
  * @method static Builder|Chunk whereUpdatedAt($value)
  * @mixin \Eloquent
@@ -82,9 +82,9 @@ class Chunk extends Model
 
     protected $fillable = [
         'id',
-        'chunk_id',
         'sink_id',
-        'records',
+        'chunk_id',
+        'chunk_date',
         'fetch_status',
         'fetch_size',
         'fetch_message',
@@ -145,7 +145,10 @@ class Chunk extends Model
     public function scopeCanDeleteFetched(Builder $query): void
     {
         /** @var Chunk $query */
-        $query->notInBatch()->whereNot('fetch_status', 'new')->whereNot('import_status', 'in_progress');
+        $query->notInBatch()
+            ->whereNot('fetch_status', 'new')
+            ->whereNot('import_status', 'in_progress')
+            ->whereDate('chunk_date', '>', now()->sub(config('ragnarok.delete_age_threshold')));
     }
 
     /**
@@ -156,7 +159,8 @@ class Chunk extends Model
     public function scopeCanImport(Builder $query): void
     {
         /** @var Chunk $query */
-        $query->notInBatch()->whereNot('fetch_status', 'in_progress')
+        $query->notInBatch()
+            ->whereNot('fetch_status', 'in_progress')
             ->whereNot('import_status', 'in_progress');
     }
 
@@ -225,6 +229,7 @@ class Chunk extends Model
             fn (mixed $val, array $attr = []) => $this->not_in_batch
                 && !in_array($attr['fetch_status'], array('in_progress', 'new'))
                 && $attr['import_status'] !== 'in_progress'
+                && now()->sub(config('ragnarok.delete_age_threshold'))->isBefore($this->chunk_date)
         );
     }
 

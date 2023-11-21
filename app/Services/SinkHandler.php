@@ -188,8 +188,13 @@ class SinkHandler
         $chunk->{$stage . '_status'} = $finalState;
         $chunk->{$stage . '_batch'} = null;
         if ($finalState === 'finished') {
+            if ($stage === 'fetch') {
+                $chunk->chunk_date = $this->src->getChunkDate($chunk->chunk_id);
+            }
             $chunk->{$stage . '_size'} = $result;
-            $chunk->{$stage . '_version'} = $stage === 'fetch' ? $this->src->getChunkVersion($chunk->chunk_id) : $chunk->fetch_version;
+            $chunk->{$stage . '_version'} = $stage === 'fetch'
+                ? $this->src->getChunkVersion($chunk->chunk_id)
+                : $chunk->fetch_version;
             $chunk->{$stage . 'ed_at'} = now();
         }
         $chunk->save();

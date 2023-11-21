@@ -21,9 +21,9 @@ return new class extends Migration
 
         Schema::create('ragnarok_chunks', function (Blueprint $table) use ($statusValues) {
             $table->id()->comment('Chunk ID');
-            $table->char('chunk_id', 64)->comment('Chunk id as given by source');
             $table->char('sink_id', 64);
-            $table->bigInteger('records')->default(0)->comment('Number of records imported');
+            $table->char('chunk_id', 64)->comment('Chunk id as given by source');
+            $table->dateTime('chunk_date')->nullable()->comment('What moment in time this chunk belongs to');
             $table->enum('fetch_status', $statusValues)->default('new')->comment('Raw data retrieval status');
             $table->unsignedInteger('fetch_size')->nullable()->comment('Total size of fetched files/data');
             $table->text('fetch_message')->nullable()->comment('Status/error message of last fetch operation');

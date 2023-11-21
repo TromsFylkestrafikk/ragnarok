@@ -24,6 +24,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Indication of mismatched between downloaded chunk and imported versions.
 - Queued chunks in a batch operation will not be able to operate on
   and have a gray status until completed/canceled.
+- Max age of fetched chunks users can delete.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.
