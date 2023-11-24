@@ -29,6 +29,7 @@ class RolesAndPermissionSeeder extends Seeder
         Permission::create(['name' => 'deleteFetched chunks']);
         Permission::create(['name' => 'deleteImported chunks']);
         Permission::create(['name' => 'delete batches']);
+        Permission::create(['name' => 'download chunks']);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
@@ -43,6 +44,7 @@ class RolesAndPermissionSeeder extends Seeder
             'deleteFetched chunks',
             'deleteImported chunks',
             'delete batches',
+            'download chunks',
         ]);
 
         Role::create(['name' => 'maintainer'])->givePermissionTo([
@@ -53,6 +55,7 @@ class RolesAndPermissionSeeder extends Seeder
             'deleteFetched chunks',
             'deleteImported chunks',
             'delete batches',
+            'download chunks',
         ]);
 
         Role::create(['name' => 'reader'])->givePermissionTo([

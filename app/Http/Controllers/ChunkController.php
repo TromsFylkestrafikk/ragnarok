@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Facades\Ragnarok;
 use App\Http\Requests\ListChunksRequest;
 use App\Http\Requests\UpdateChunkRequest;
 use App\Http\Resources\ChunkCollection;
@@ -9,7 +10,9 @@ use App\Http\Helpers\ChunksFilter;
 use App\Models\Sink;
 use App\Models\Chunk;
 use App\Services\ChunkDispatcher;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * @SuppressWarnings(PHPMD.UnusedFormalParameter)
@@ -49,5 +52,22 @@ class ChunkController extends Controller
             'batchId' => $batchId,
             'chunk' => Chunk::find($chunk->id),
         ]);
+    }
+
+    /**
+     * @return BinaryFileResponse|Response
+     */
+    public function download(Request $request, Sink $sink, Chunk $chunk): BinaryFileResponse|Response
+    {
+        $filepath = Ragnarok::getSinkHandler($sink->id)->getChunkFilepath($chunk);
+        if (!$filepath) {
+            return response(null, Response::HTTP_NOT_FOUND);
+        }
+        // Assert sink ID is part of file name
+        $filename = basename($filepath);
+        if (strpos($filename, $sink->id) === false) {
+            $filename = sprintf('%s-%s', $sink->id, $filename);
+        }
+        return response()->download($filepath, $filename);
     }
 }

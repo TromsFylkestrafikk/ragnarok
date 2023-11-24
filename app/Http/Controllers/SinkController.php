@@ -48,6 +48,7 @@ class SinkController extends Controller
             'readSinks' => $user->can('read sinks'),
             'readChunks' => $user->can('read chunks'),
             'deleteBatches' => $user->can('delete batches'),
+            'downloadChunks' => $user->can('download chunks'),
             'operations' => array_reduce(
                 $operations,
                 function ($carry, $operation) use ($user) {

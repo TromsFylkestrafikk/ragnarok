@@ -5,20 +5,24 @@ namespace App\Services;
 use App\Models\Sink;
 use App\Models\Chunk;
 use App\Helpers\Utils;
+use App\Services\Archive;
 use Closure;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Ragnarok\Sink\Services\LocalFiles;
 use Ragnarok\Sink\Sinks\SinkBase;
-use Ragnarok\Sink\Traits\LogPrintf;
 
 /**
  * Wrapper around sink model and is associated SinkBase implementation.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class SinkHandler
 {
-    use LogPrintf;
+    use \Ragnarok\Sink\Traits\LogPrintf;
 
     /**
      * @var SinkBase
@@ -31,6 +35,13 @@ class SinkHandler
     protected $dispatcher = null;
 
     /**
+     * Run this stuff on object destruct.
+     *
+     * @var callable[]
+     */
+    protected $destructors = [];
+
+    /**
      * Cache available chunks for this many seconds.
      */
     public const CHUNK_CACHE_EXPIRE = 60 * 60;
@@ -39,6 +50,19 @@ class SinkHandler
     {
         $this->src = new ($sink->impl_class)();
         $this->logPrintfInit("[Sink %s]: ", $this->sink->id);
+    }
+
+    /**
+     * @return void
+     */
+    public function __destruct()
+    {
+        if (count($this->destructors)) {
+            $this->debug('Calling destructors ..');
+        }
+        foreach ($this->destructors as $callable) {
+            call_user_func($callable);
+        }
     }
 
     /**
@@ -154,6 +178,39 @@ class SinkHandler
         $start = microtime(true);
         $this->doRunOperation(fn() => $this->src->deleteImport($chunk->chunk_id), $chunk, 'import', 'new');
         $this->info('Deleted chunk \'%s\' from DB in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
+        return $this;
+    }
+
+    /**
+     * @return string|null Path to single file download for chunk
+     */
+    public function getChunkFilepath(Chunk $chunk): string|null
+    {
+        $files = $this->src->getChunkFiles($chunk->chunk_id);
+        if ($files->count() < 1) {
+            return null;
+        }
+        $disk = (new LocalFiles($chunk->sink_id))->getDisk();
+        if ($files->count() === 1) {
+            return $disk->path($files->first()->name);
+        }
+        // Sink has several files in chunk. Pack them in a temp zip archive and
+        // hand over.
+        $filename = sprintf('%s_%s.zip', $chunk->sink_id, $chunk->chunk_id);
+        $filepath = Storage::disk('tmp')->path($filename);
+        Archive::toZip($chunk->sink_id, $files, $filepath);
+        $this->onDestruct(function () use ($filepath) {
+            unlink($filepath);
+        });
+        return $filepath;
+    }
+
+    /**
+     * @param callable $callee Run this on object destruct.
+     */
+    public function onDestruct(callable $callee): SinkHandler
+    {
+        $this->destructors[] = $callee;
         return $this;
     }
 

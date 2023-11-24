@@ -447,6 +447,17 @@ onMounted(() => {
           </td>
         </tr>
       </template>
+      <template #item.chunk_id="{ item, value }">
+        <a
+          v-if="props.permissions.downloadChunks && item.fetch_status === 'finished'"
+          :href="`/api/sinks/${item.sink_id}/chunks/${item.id}/download`"
+        >
+          {{ value }}
+        </a>
+        <span v-else>
+          {{ value }}
+        </span>
+      </template>
       <template #item.fetch_status="{ item, value }">
         <v-badge :model-value="item.is_modified" color="warning" content="!">
           <v-chip

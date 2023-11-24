@@ -25,6 +25,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Queued chunks in a batch operation will not be able to operate on
   and have a gray status until completed/canceled.
 - Max age of fetched chunks users can delete.
+- Raw fetched chunks from sinks can be downloaded directly
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.
