@@ -10,7 +10,6 @@ const props = defineProps({
 });
 const batches = reactive({});
 const hasBatches = computed(() => reduce(batches, () => true, false));
-const confirmDiag = ref(false);
 
 function replaceBatch(batch) {
     batches[batch.id] = batch;
@@ -19,8 +18,15 @@ function replaceBatch(batch) {
     }
 }
 
-function cancelBatch(batchId) {
-    axios.delete(`/api/batch/${batchId}`).then((result) => replaceBatch(result.data.batch));
+const confirmDiag = ref(false);
+const confirmBatchId = ref(null);
+function openConfirm(batch) {
+    confirmDiag.value = true;
+    confirmBatchId.value = batch.id;
+}
+
+function cancelBatch() {
+    axios.delete(`/api/batch/${confirmBatchId.value}`).then((result) => replaceBatch(result.data.batch));
 }
 
 function progressBarContent(batch) {
@@ -79,15 +85,16 @@ onMounted(() => {
             <v-btn
               variant="text"
               :disabled="batch.finishedAt"
+              @click="openConfirm(batch)"
             >
               Cancel
-              <confirm-dialog v-model="confirmDiag" activator="parent" @confirmed="cancelBatch(batch.id)">
-                Confirm operation abort
-              </confirm-dialog>
             </v-btn>
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
   </v-slide-y-transition>
+  <confirm-dialog v-model="confirmDiag" @confirmed="cancelBatch">
+    Confirm operation abort
+  </confirm-dialog>
 </template>
