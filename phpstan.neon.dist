@@ -6,3 +6,4 @@ parameters:
     - ./app
     - ./tests
   checkMissingIterableValueType: false
+  treatPhpDocTypesAsCertain: false

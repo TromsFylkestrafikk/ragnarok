@@ -26,6 +26,8 @@ stack, where we shoe-horn in Vuetify as our main UI.
   and have a gray status until completed/canceled.
 - Max age of fetched chunks users can delete.
 - Raw fetched chunks from sinks can be downloaded directly
+- Added background job for linting stuck chunks or chunks with invalid
+  state.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.
