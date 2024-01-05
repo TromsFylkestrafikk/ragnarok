@@ -27,7 +27,7 @@ const props = defineProps({
 const headers = ref([
     { title: 'Chunk ID', key: 'chunk_id', sortable: true },
     { title: 'Fetch status', key: 'fetch_status', sortable: true },
-    { title: 'Fetch size', key: 'fetch_size', sortable: true },
+    { title: 'Fetch size', key: 'sink_file.size', sortable: true },
     { title: 'Import status', key: 'import_status', sortable: true },
     { title: 'Imported rows', key: 'import_size', sortable: true },
 ]);
@@ -495,8 +495,8 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
       </template>
-      <template #item.fetch_size="{ value }">
-        {{ value === null ? '-' : filesize(value) }}
+      <template #item.sink_file.size="{ item }">
+        {{ item.sink_file?.size ? filesize(item.sink_file.size) : '-' }}
       </template>
       <template #item.import_status="{ item }">
         <v-chip

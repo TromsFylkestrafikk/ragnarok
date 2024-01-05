@@ -5,14 +5,13 @@ namespace App\Services;
 use App\Models\Sink;
 use App\Models\Chunk;
 use App\Helpers\Utils;
-use App\Services\Archive;
 use Closure;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
-use Ragnarok\Sink\Services\LocalFiles;
+use Ragnarok\Sink\Models\SinkFile;
+use Ragnarok\Sink\Services\LocalFile;
 use Ragnarok\Sink\Sinks\SinkBase;
 
 /**
@@ -35,11 +34,9 @@ class SinkHandler
     protected $dispatcher = null;
 
     /**
-     * Run this stuff on object destruct.
-     *
-     * @var callable[]
+     * @var float
      */
-    protected $destructors = [];
+    protected $operationRunTime = 0;
 
     /**
      * Cache available chunks for this many seconds.
@@ -50,19 +47,6 @@ class SinkHandler
     {
         $this->src = new ($sink->impl_class)();
         $this->logPrintfInit("[Sink %s]: ", $this->sink->id);
-    }
-
-    /**
-     * @return void
-     */
-    public function __destruct()
-    {
-        if (count($this->destructors)) {
-            $this->debug('Calling destructors ..');
-        }
-        foreach ($this->destructors as $callable) {
-            call_user_func($callable);
-        }
     }
 
     /**
@@ -126,10 +110,16 @@ class SinkHandler
      */
     public function fetchChunk($chunk): SinkHandler
     {
-        $this->debug("Fetching chunk '%s' ...", $chunk->chunk_id);
-        $start = microtime(true);
-        $this->doRunOperation(fn() => $this->src->fetch($chunk->chunk_id), $chunk, 'fetch');
-        $this->info('Fetched chunk %s in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
+        $this->debug("Chunk %s: Fetching ...", $chunk->chunk_id);
+        $this->doRunOperation(function () use ($chunk) {
+            /** @var SinkFile $file */
+            $file = $this->src->fetch($chunk->chunk_id);
+            $chunk->sink_file_id = $file->id;
+            $chunk->chunk_date = $this->src->getChunkDate($chunk->chunk_id);
+            $chunk->fetch_size = $file->size;
+            $chunk->fetch_version = $file->checksum;
+        }, $chunk, 'fetch');
+        $this->info('Chunk %s: Fetched in %.2f seconds', $chunk->chunk_id, $this->operationRunTime);
         return $this;
     }
 
@@ -139,8 +129,14 @@ class SinkHandler
      */
     public function removeChunk($chunk): SinkHandler
     {
-        $this->doRunOperation(fn() => $this->src->removeChunk($chunk->chunk_id), $chunk, 'fetch', 'new');
-        $this->info("Removed retrieved stage 1 data for chunk '%s'", $chunk->chunk_id);
+        $this->debug('Chunk %s: Removing ...', $chunk->chunk_id);
+        $this->doRunOperation(function () use ($chunk) {
+            unlink($this->getChunkFilepath($chunk));
+            $chunk->sinkFile->delete();
+            $chunk->fetch_size = null;
+            $chunk->sink_file_id = null;
+        }, $chunk, 'fetch', 'new');
+        $this->info("Chunk %s: Removed retrieved stage 1 data in %.2f seconds", $chunk->chunk_id, $this->operationRunTime);
         return $this;
     }
 
@@ -151,7 +147,7 @@ class SinkHandler
      */
     public function importChunk($chunk): SinkHandler
     {
-        $this->debug("Importing chunk '%s' ...", $chunk->chunk_id);
+        $this->debug("Chunk %s: Importing ...", $chunk->chunk_id);
         if ($chunk->fetch_status !== 'finished') {
             $this->error('Chunk not properly fetched from source yet.');
             return $this;
@@ -160,9 +156,11 @@ class SinkHandler
             $this->error("Cannot import chunk '%s'. Import already in progress", $chunk->chunk_id);
             return $this;
         }
-        $start = microtime(true);
-        $this->doRunOperation(fn() => $this->src->import($chunk->chunk_id), $chunk, 'import');
-        $this->info("Imported chunk '%s' in %.2f seconds", $chunk->chunk_id, microtime(true) - $start);
+        $this->doRunOperation(function () use ($chunk) {
+            $chunk->import_size = $this->src->import($chunk->chunk_id, $chunk->sinkFile);
+            $chunk->import_version = $chunk->fetch_version;
+        }, $chunk, 'import');
+        $this->info("Chunk %s: Imported %d entries in  %.2f seconds", $chunk->chunk_id, $chunk->import_size, $this->operationRunTime);
         return $this;
     }
 
@@ -175,9 +173,9 @@ class SinkHandler
      */
     public function deleteImport(Chunk $chunk): SinkHandler
     {
-        $start = microtime(true);
-        $this->doRunOperation(fn() => $this->src->deleteImport($chunk->chunk_id), $chunk, 'import', 'new');
-        $this->info('Deleted chunk \'%s\' from DB in %.2f seconds', $chunk->chunk_id, microtime(true) - $start);
+        $this->debug("Chunk %s: Deleting import ...", $chunk->chunk_id);
+        $this->doRunOperation(fn() => $this->src->deleteImport($chunk->chunk_id, $chunk->sinkFile), $chunk, 'import', 'new');
+        $this->info('Chunk %s: Deleted from DB in %.2f seconds', $chunk->chunk_id, $this->operationRunTime);
         return $this;
     }
 
@@ -186,32 +184,7 @@ class SinkHandler
      */
     public function getChunkFilepath(Chunk $chunk): string|null
     {
-        $files = $this->src->getChunkFiles($chunk->chunk_id);
-        if ($files->count() < 1) {
-            return null;
-        }
-        $disk = (new LocalFiles($chunk->sink_id))->getDisk();
-        if ($files->count() === 1) {
-            return $disk->path($files->first()->name);
-        }
-        // Sink has several files in chunk. Pack them in a temp zip archive and
-        // hand over.
-        $filename = sprintf('%s_%s.zip', $chunk->sink_id, $chunk->chunk_id);
-        $filepath = Storage::disk('tmp')->path($filename);
-        Archive::toZip($chunk->sink_id, $files, $filepath);
-        $this->onDestruct(function () use ($filepath) {
-            unlink($filepath);
-        });
-        return $filepath;
-    }
-
-    /**
-     * @param callable $callee Run this on object destruct.
-     */
-    public function onDestruct(callable $callee): SinkHandler
-    {
-        $this->destructors[] = $callee;
-        return $this;
+        return (new LocalFile($chunk->sink_id, $chunk->sinkFile))->getPath();
     }
 
     /**
@@ -226,6 +199,7 @@ class SinkHandler
      */
     protected function doRunOperation(Closure $run, Chunk $chunk, $stage, $finalState = 'finished')
     {
+        $start = microtime(true);
         $chunk->{$stage . '_status'} = 'in_progress';
         $chunk->{$stage . '_message'} = null;
         $chunk->{$stage . '_size'} = null;
@@ -245,16 +219,10 @@ class SinkHandler
         $chunk->{$stage . '_status'} = $finalState;
         $chunk->{$stage . '_batch'} = null;
         if ($finalState === 'finished') {
-            if ($stage === 'fetch') {
-                $chunk->chunk_date = $this->src->getChunkDate($chunk->chunk_id);
-            }
-            $chunk->{$stage . '_size'} = $result;
-            $chunk->{$stage . '_version'} = $stage === 'fetch'
-                ? $this->src->getChunkVersion($chunk->chunk_id)
-                : $chunk->fetch_version;
             $chunk->{$stage . 'ed_at'} = now();
         }
         $chunk->save();
+        $this->operationRunTime = microtime(true) - $start;
         return $result;
     }
 

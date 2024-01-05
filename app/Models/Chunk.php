@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Ragnarok\Sink\Models\SinkFile;
 
 /**
  * \App\Models\Chunk
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $chunk_id Chunk id as given by source
  * @property string $sink_id
  * @property string|null $chunk_date What moment in time this chunk belongs to
+ * @property int|null $sink_file_id File assocciated with fetched chunk
  * @property string $fetch_status Raw data retrieval status
  * @property int|null $fetch_size Total size of fetched files/data
  * @property string|null $fetch_message Status/error message of last fetch operation
@@ -40,6 +42,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\Sink|null $sink
+ * @property-read SinkFile|null $sinkFile
  * @method static Builder|Chunk canDeleteFetched()
  * @method static Builder|Chunk canDeleteImported()
  * @method static Builder|Chunk canFetch()
@@ -67,6 +70,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static Builder|Chunk whereImportStatus($value)
  * @method static Builder|Chunk whereImportVersion($value)
  * @method static Builder|Chunk whereImportedAt($value)
+ * @method static Builder|Chunk whereSinkFileId($value)
  * @method static Builder|Chunk whereSinkId($value)
  * @method static Builder|Chunk whereUpdatedAt($value)
  * @mixin \Eloquent
@@ -85,6 +89,7 @@ class Chunk extends Model
         'sink_id',
         'chunk_id',
         'chunk_date',
+        'sink_file_id',
         'fetch_status',
         'fetch_size',
         'fetch_message',
@@ -97,7 +102,20 @@ class Chunk extends Model
         'imported_at',
     ];
 
-    protected $appends = ['need_fetch', 'can_delete_fetched', 'need_import', 'can_delete_imported', 'is_modified'];
+    protected $appends = [
+        'need_fetch',
+        'can_delete_fetched',
+        'need_import',
+        'can_delete_imported',
+        'is_modified',
+    ];
+
+    protected $with = ['sinkFile'];
+
+    public function sinkFile(): BelongsTo
+    {
+        return $this->belongsTo(SinkFile::class);
+    }
 
     public function sink(): BelongsTo
     {
