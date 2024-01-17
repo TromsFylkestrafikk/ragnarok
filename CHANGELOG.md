@@ -29,6 +29,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Added background job for linting stuck chunks or chunks with invalid
   state.
 - Fetched chunks are single files stored on disk, maintained in DB.
+- View schema for sink's destination tables.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.

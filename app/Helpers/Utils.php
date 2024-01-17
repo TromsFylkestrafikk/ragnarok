@@ -6,7 +6,7 @@ use Exception;
 
 class Utils
 {
-    public static function exceptToStr(Exception $except, $traceLength = 10)
+    public static function exceptToStr(Exception $except, $traceLength = 10, $msgLength = 1000)
     {
         $trace = explode(PHP_EOL, $except->getTraceAsString());
         if ($traceLength > 0 && count($trace) > $traceLength) {
@@ -15,7 +15,7 @@ class Utils
         }
         return sprintf(
             "%s\nOccured in %s(%d)\n\t- %s",
-            $except->getMessage(),
+            substr($except->getMessage(), 0, $msgLength),
             $except->getFile(),
             $except->getLine(),
             implode("\n\t- ", $trace)

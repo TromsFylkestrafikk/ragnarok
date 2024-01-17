@@ -3,6 +3,7 @@
 use App\Http\Controllers\BatchApiController;
 use App\Http\Controllers\ChunkController;
 use App\Http\Controllers\SinkApiController;
+use App\Http\Controllers\SinkSchemaApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::apiResource('sinks', SinkApiController::class)->only(['index', 'show', 'update']);
+    Route::apiResource('sinks.schemas', SinkSchemaApiController::class)->only(['index', 'show']);
     Route::apiResource('sinks.chunks', ChunkController::class)->only(['index', 'update']);
     Route::controller(ChunkController::class)->group(function () {
         Route::get('sinks/{sink}/chunks/{chunk}/download', 'download');

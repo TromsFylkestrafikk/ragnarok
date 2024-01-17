@@ -1,6 +1,5 @@
 <?php
 
-use App\Facades\Ragnarok;
 use App\Http\Controllers\SinkController;
 use App\Http\Controllers\UserAccountController;
 use Illuminate\Support\Facades\Route;
@@ -22,9 +21,10 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+    Route::get('/', [SinkController::class, 'index'])->name('home');
+
     Route::resource('account', UserAccountController::class)->except(['create', 'edit']);
     Route::resource('sinks', SinkController::class)->only(['index', 'show']);
-    Route::get('/', [SinkController::class, 'index'])->name('home');
 
     Route::get('user.accounts', function () {
         return Inertia::render('AccountManagement/UserAccounts');

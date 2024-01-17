@@ -3,6 +3,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
 import ChunkError from '@/Pages/Partials/ChunkError.vue';
+import ChunkMenu from '@/Pages/Partials/ChunkMenu.vue';
 import { permissionProps, usePermissions } from '@/composables/permissions';
 import useStatus from '@/composables/chunks';
 import {
@@ -316,6 +317,10 @@ onMounted(() => {
       <template #top>
         <v-card color="grey-lighten-4" elevation="0">
           <v-toolbar>
+            <v-btn icon>
+              <v-icon>mdi-menu</v-icon>
+              <chunk-menu activator="parent" :sink-id="sink.id" />
+            </v-btn>
             <v-toolbar-title>{{ sink.title }}</v-toolbar-title>
             <v-spacer />
             <v-col v-if="showOp" class="text-grey">
