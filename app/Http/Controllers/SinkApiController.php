@@ -55,6 +55,19 @@ class SinkApiController extends Controller
     }
 
     /**
+     * Scan local file storage for files not already fetched.
+     */
+    public function scanLocalFiles(Sink $sink): Response
+    {
+        Ragnarok::getSinkHandler($sink->id)->scanLocalFiles();
+        /** @var Response */
+        return response([
+            'status' => true,
+            'message' => sprintf('Initiated local file scan for sink %s as background job', $sink->title),
+        ]);
+    }
+
+    /**
      * @return string|null Batch ID of executed batch operation.
      */
     protected function executeOperation(Request $request, Sink $sink, string $operation): string|null

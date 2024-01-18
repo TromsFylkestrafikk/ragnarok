@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SinkScanLocalFiles;
 use App\Models\Sink;
 use App\Models\Chunk;
 use App\Helpers\Utils;
@@ -185,6 +186,11 @@ class SinkHandler
     public function getChunkFilepath(Chunk $chunk): string|null
     {
         return (new LocalFile($chunk->sink_id, $chunk->sinkFile))->getPath();
+    }
+
+    public function scanLocalFiles(): void
+    {
+        SinkScanLocalFiles::dispatch($this->sink->id);
     }
 
     /**

@@ -33,6 +33,11 @@ function showSchema(tableName) {
     schemaDialog.value = true;
 }
 
+function scanLocalFiles() {
+    menuValue.value = false;
+    axios.get(`/api/sinks/${props.sinkId}/scan`);
+}
+
 </script>
 
 <template>
@@ -53,6 +58,7 @@ function showSchema(tableName) {
           @click="showSchema(tableName)"
         />
       </v-list-group>
+      <v-list-item title="Scan local disk for existing files" @click="scanLocalFiles" />
     </v-list>
   </v-menu>
 
