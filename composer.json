@@ -14,6 +14,7 @@
         "laravel/tinker": "^2.8",
         "pusher/pusher-php-server": "^7.2",
         "ragnarok/consat": "dev-main",
+        "ragnarok/fara": "dev-main",
         "ragnarok/ruter": "dev-main",
         "ragnarok/sink": "dev-main",
         "ragnarok/skyttel": "dev-main",
@@ -29,7 +30,7 @@
         "laravel/sail": "^1.18",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",
-        "nunomaduro/larastan": "^2.5",
+        "larastan/larastan": "^2.8",
         "phpmd/phpmd": "^2.13",
         "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^10.0",
@@ -68,6 +69,10 @@
         {
             "type": "github",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-consat"
+        },
+        {
+            "type": "github",
+            "url": "https://github.com/TromsFylkestrafikk/ragnarok-fara"
         },
         {
             "type": "github",
