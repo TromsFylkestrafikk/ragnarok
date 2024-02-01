@@ -1,4 +1,5 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { permissionProps } from '@/composables/permissions';
 import { computed, onMounted, reactive, ref } from 'vue';
@@ -79,7 +80,9 @@ onMounted(() => {
             </v-progress-linear>
           </v-col>
           <v-col cols="2">
-            {{ batch.name }}
+            <component :is="props.sinkId ? 'span' : Link" :href="props.sinkId ? null : `/sinks/${batch.sink_id}`">
+              {{ batch.name }}
+            </component>
           </v-col>
           <v-col v-if="props.permissions.deleteBatches" cols="2">
             <v-btn

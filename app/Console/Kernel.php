@@ -3,7 +3,7 @@
 namespace App\Console;
 
 use App\Facades\Ragnarok;
-use App\Jobs\ChunkLint;
+use App\Jobs\LintRemover;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -16,7 +16,7 @@ class Kernel extends ConsoleKernel
     {
         Ragnarok::schedule($schedule);
         $schedule->command('queue:prune-batches --hours=48 --unfinished=72 --cancelled=72')->daily();
-        $schedule->job(ChunkLint::class)->hourly();
+        $schedule->job(LintRemover::class)->hourly();
     }
 
     /**

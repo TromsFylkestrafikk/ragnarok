@@ -8,6 +8,7 @@ use App\Jobs\DeleteImportedChunk;
 use App\Jobs\FetchChunk;
 use App\Jobs\ImportChunk;
 use App\Models\Chunk;
+use App\Models\BatchSink;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -250,13 +251,17 @@ class ChunkDispatcher
     }
 
     /**
-     * Add batch info to chunks in current batch.
+     * Add batch info to chunks for current batch.
      *
-     * The chunks added are collected during chunk job selection at an earlier
-     * stage.
+     * Also, add map between batch and sink. The chunks added are collected
+     * during chunk job selection at an earlier stage.
      */
     protected function updateChunksBatch(Batch $batch): void
     {
+        /** @var BatchSink $bSink */
+        $bSink = BatchSink::firstOrNew(['batch_id' => $batch->id]);
+        $bSink->sink_id = $this->sinkId;
+        $bSink->save();
         foreach (['fetch_batch', 'import_batch'] as $column) {
             if (!empty($this->chunkBatchMap[$column])) {
                 Chunk::whereIn('id', $this->chunkBatchMap[$column])->update([$column => $batch->id]);
@@ -265,10 +270,14 @@ class ChunkDispatcher
     }
 
     /**
-     * Reset batch info on chunks connected to given batch.
+     * Reset batch info on chunks and its sink mapping.
      */
     protected static function resetChunksBatch(Batch $batch): void
     {
+        $bSink = BatchSink::firstWhere('batch_id', $batch->id);
+        if ($bSink) {
+            $bSink->delete();
+        }
         Chunk::whereFetchBatch($batch->id)->orWhere('import_batch', $batch->id)->update([
             'fetch_batch' => null,
             'import_batch' => null,

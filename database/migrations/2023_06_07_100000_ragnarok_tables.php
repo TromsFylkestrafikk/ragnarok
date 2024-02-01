@@ -40,6 +40,13 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['chunk_id', 'sink_id']);
         });
+
+        Schema::create('ragnarok_batches', function (Blueprint $table) {
+            $table->id()->comment('Required for easier eloquent operations');
+            $table->string('batch_id')->unique()->comment('References job_batches.id');
+            $table->char('sink_id', 64)->comment('References ragnarok_sinks.id');
+            $table->timestamps();
+        });
     }
 
     /**
@@ -49,5 +56,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('ragnarok_sinks');
         Schema::dropIfExists('ragnarok_chunks');
+        Schema::dropIfExists('ragnarok_batches');
     }
 };

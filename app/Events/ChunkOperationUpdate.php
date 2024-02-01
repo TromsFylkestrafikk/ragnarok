@@ -32,6 +32,7 @@ class ChunkOperationUpdate implements ShouldBroadcast
     public function __construct(public string $sinkId, Batch $batchInstance)
     {
         $this->batch = $batchInstance->toArray();
+        $this->batch['sink_id'] = $sinkId;
     }
 
     /**

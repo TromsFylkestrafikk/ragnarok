@@ -36,4 +36,9 @@ class Sink extends Model
     {
         return $this->hasMany(Chunk::class);
     }
+
+    public function batches(): HasMany
+    {
+        return $this->hasMany(BatchSink::class);
+    }
 }

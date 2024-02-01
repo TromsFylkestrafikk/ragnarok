@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BatchSink;
 use App\Models\Chunk;
 use Illuminate\Bus\Batch;
 use Illuminate\Contracts\Routing\ResponseFactory;
@@ -16,28 +17,34 @@ class BatchApiController extends Controller
     public function index(Request $request): Collection
     {
         $this->authorize('read sinks');
-        $query = DB::table('job_batches')
-            ->select('id')
-            ->where('total_jobs', '>', 1)
-            ->whereNot('pending_jobs', 0)
-            ->whereNull('cancelled_at')
-            ->whereNull('finished_at');
-        // This is a bit hacky. But instead of having an additional table
-        // linking batches to sinks, we scan for the sink ID in the batch name,
-        // specified in App\Services\ChunkDispatcher.
+        $query = DB::table('job_batches', 'jb')
+            ->join('ragnarok_batches as rb', 'rb.batch_id', 'jb.id')
+            ->select('jb.id', 'rb.*')
+            ->where('jb.total_jobs', '>', 1)
+            ->whereNot('jb.pending_jobs', 0)
+            ->whereNull('jb.cancelled_at')
+            ->whereNull('jb.finished_at');
         if ($request->input('sinkId')) {
-            $query->where('name', 'LIKE', sprintf('%s: %%', $request->input('sinkId')));
+            $query->where('rb.sink_id', $request->input('sinkId'));
         }
-        return $query->pluck('id')->map(fn ($batchId) => Bus::findBatch($batchId));
+        return $query->get()->map(function ($row) {
+            $batch = Bus::findBatch($row->batch_id)->toArray();
+            $batch['sink_id'] = $row->sink_id;
+            return $batch;
+        });
     }
 
-    public function show(string $batchId): Batch|null
+    public function show(string $batchId): array|null
     {
         $this->authorize('read sinks');
+        $bSink = BatchSink::firstWhere(['batch_id' => $batchId])->get();
         $batch = Bus::findBatch($batchId);
-        if (!$batch) {
+        if (!$batch || !$bSink) {
             abort(Response::HTTP_NOT_FOUND);
         }
+        /** @var BatchSink $bSink */
+        $batch = $batch->toArray();
+        $batch['sink_id'] = $bSink->sink_id;
         return $batch;
     }
 

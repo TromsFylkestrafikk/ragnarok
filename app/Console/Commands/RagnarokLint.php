@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\ChunkLint;
+use App\Services\Linter;
 use Illuminate\Console\Command;
 
-class ChunkLinter extends Command
+class RagnarokLint extends Command
 {
     /**
      * The name and signature of the console command.
@@ -26,7 +26,11 @@ class ChunkLinter extends Command
      */
     public function handle()
     {
-        ChunkLint::dispatch();
-        $this->info('Done. Check tables or web interface for updates');
+        $linter = new Linter();
+        $this->line('Cleaning up state in chunks table ...');
+        $linter->chunkLinter();
+        $this->line('Removing completed batch jobs ...');
+        $linter->batchSinkLinter();
+        $this->info('Done.');
     }
 }
