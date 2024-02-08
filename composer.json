@@ -14,6 +14,7 @@
         "laravel/tinker": "^2.8",
         "pusher/pusher-php-server": "^7.2",
         "ragnarok/consat": "dev-main",
+        "ragnarok/entur": "dev-master",
         "ragnarok/fara": "dev-main",
         "ragnarok/ruter": "dev-main",
         "ragnarok/sink": "dev-main",
@@ -68,7 +69,19 @@
     "repositories": [
         {
             "type": "github",
+            "url": "https://github.com/TromsFylkestrafikk/christmas-tree-parser"
+        },
+        {
+            "type": "github",
+            "url": "https://github.com/TromsFylkestrafikk/laravel-netex"
+        },
+        {
+            "type": "github",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-consat"
+        },
+        {
+            "type": "github",
+            "url": "https://github.com/TromsFylkestrafikk/ragnarok-entur"
         },
         {
             "type": "github",
