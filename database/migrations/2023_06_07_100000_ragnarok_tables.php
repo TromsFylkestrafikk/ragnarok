@@ -15,6 +15,7 @@ return new class extends Migration
         Schema::create('ragnarok_sinks', function (Blueprint $table) {
             $table->char('id', 64)->primary()->comment('Unique sink ID');
             $table->char('title', 255)->comment('Title/name of sink for presentation');
+            $table->boolean('single_state')->comment('Chunks represent a non-incremental, single state in DB');
             $table->string('impl_class')->comment('Implementation of \Ragnarok\Sink\Sinks\SinkBase');
             $table->timestamps();
         });

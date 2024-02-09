@@ -157,6 +157,17 @@ class SinkHandler
             $this->error("Cannot import chunk '%s'. Import already in progress", $chunk->chunk_id);
             return $this;
         }
+        // For single state sinks, reset state on other imported chunks
+        if ($this->sink->single_state) {
+            Chunk::where('sink_id', $this->sink->id)
+                ->whereNot('import_status', 'new')
+                ->whereNot('id', $chunk->id)
+                ->get()
+                ->map(function (Chunk $chunk) {
+                    $this->resetStage($chunk);
+                    $chunk->save();
+                });
+        }
         $this->doRunOperation(function () use ($chunk) {
             $chunk->import_size = $this->src->import($chunk->chunk_id, $chunk->sinkFile);
             $chunk->import_version = $chunk->fetch_version;
@@ -206,11 +217,8 @@ class SinkHandler
     protected function doRunOperation(Closure $run, Chunk $chunk, $stage, $finalState = 'finished')
     {
         $start = microtime(true);
+        $this->resetStage($chunk, $stage);
         $chunk->{$stage . '_status'} = 'in_progress';
-        $chunk->{$stage . '_message'} = null;
-        $chunk->{$stage . '_size'} = null;
-        $chunk->{$stage . '_version'} = null;
-        $chunk->{$stage . 'ed_at'} = null;
         $chunk->save();
         try {
             $result = $run();
@@ -230,6 +238,16 @@ class SinkHandler
         $chunk->save();
         $this->operationRunTime = microtime(true) - $start;
         return $result;
+    }
+
+    protected function resetStage(Chunk $chunk, string $stage = 'import'): SinkHandler
+    {
+        $chunk->{$stage . '_status'} = 'new';
+        $chunk->{$stage . '_message'} = null;
+        $chunk->{$stage . '_size'} = null;
+        $chunk->{$stage . '_version'} = null;
+        $chunk->{$stage . 'ed_at'} = null;
+        return $this;
     }
 
     /**
