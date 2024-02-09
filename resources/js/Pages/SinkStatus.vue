@@ -66,7 +66,10 @@ const execParams = reactive({
 const selectionCount = computed(() => (execParams.targetSet === 'selection' ? execParams.selection.length : chunksCount.value));
 const execForm = ref(null);
 const execRules = reactive({
-    operation: [(value) => !!value || 'Please select an operation'],
+    operation: [
+        (value) => !!value || 'Please select an operation',
+        (value) => !props.sink.single_state || selectionCount.value < 2 || value !== 'import' || 'Import of several chunks not allowed for single state sinks.',
+    ],
     targetSet: [
         (value) => ((value === 'selection' && selectionCount.value === 0)
             ? 'Cannot perform operation on empty selection'
