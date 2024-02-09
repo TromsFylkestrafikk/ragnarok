@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SinkModels
 {
-    const CAHCE_KEY = 'ragnarok:sinks-synced';
+    public const CAHCE_KEY = 'ragnarok:sinks-synced';
 
     /**
      * Handle an incoming request.
@@ -43,10 +43,10 @@ class SinkModels
         // From here, ignore cache and fetch live sinks from db.
         $sinks = Sink::all()->keyBy('id');
         $sinks->diffKeys($avail)->each(fn (Sink $sink) => $sink->delete());
-        $avail->diffKeys($sinks)->each(function ($className, $id) {
-            /** var SinkBase $src */
+        $avail->each(function ($className, $id) {
+            /** @var SinkBase $src */
             $src = new $className();
-            Sink::create([
+            Sink::updateOrCreate(['id' => $id], [
                 'id' => $id,
                 'title' => $className::$title,
                 'single_state' => $src->singleState,
