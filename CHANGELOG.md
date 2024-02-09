@@ -31,6 +31,8 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Fetched chunks are single files stored on disk, maintained in DB.
 - View schema for sink's destination tables.
 - Local scan feature which (re-) adds files to sink chunks as fetched.
+- Sinks can have single-state chunks, i.e. each chunk replaces the
+  entire destination DB store.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.

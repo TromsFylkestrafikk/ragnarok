@@ -7,6 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Ragnarok\Sink\Facades\SinkRegistrar;
+use Ragnarok\Sink\Sinks\SinkBase;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -14,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SinkModels
 {
-    const CAHCE_KEY = 'ragnarok:sinks-synced';
+    public const CAHCE_KEY = 'ragnarok:sinks-synced';
 
     /**
      * Handle an incoming request.
@@ -42,11 +43,16 @@ class SinkModels
         // From here, ignore cache and fetch live sinks from db.
         $sinks = Sink::all()->keyBy('id');
         $sinks->diffKeys($avail)->each(fn (Sink $sink) => $sink->delete());
-        $avail->diffKeys($sinks)->each(fn ($className, $id) => Sink::create([
-            'id' => $id,
-            'title' => $className::$title,
-            'impl_class' => $className,
-        ]));
+        $avail->each(function ($className, $id) {
+            /** @var SinkBase $src */
+            $src = new $className();
+            Sink::updateOrCreate(['id' => $id], [
+                'id' => $id,
+                'title' => $className::$title,
+                'single_state' => $src->singleState,
+                'impl_class' => $className,
+            ]);
+        });
         Cache::put(self::CAHCE_KEY, $avail);
     }
 }
