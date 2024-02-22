@@ -14,7 +14,7 @@
         "laravel/tinker": "^2.8",
         "pusher/pusher-php-server": "^7.2",
         "ragnarok/consat": "dev-main",
-        "ragnarok/entur": "dev-master",
+        "ragnarok/entur": "dev-main",
         "ragnarok/fara": "dev-main",
         "ragnarok/ruter": "dev-main",
         "ragnarok/sink": "dev-main",
