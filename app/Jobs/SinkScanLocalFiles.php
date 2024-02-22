@@ -53,15 +53,19 @@ class SinkScanLocalFiles implements ShouldQueue
                 $disconnected++;
                 continue;
             }
-            $chunk = $chunksWoFiles->has($chunkId) ? $chunksWoFiles[$chunkId] : null;
-            if (! $chunk) {
-                $this->error('Got chunk which isnt initialized: %s', $chunkId);
-                continue;
-            }
+            $chunk = $chunksWoFiles->has($chunkId) ? $chunksWoFiles[$chunkId] : $this->createMissingChunk($chunkId);
             $this->restoreFile($filename, $chunk);
             $new++;
         }
         $this->info('FINISHED. Added %d files. Disconnected files found: %d', $new, $disconnected);
+    }
+
+    protected function createMissingChunk($chunkId): Chunk
+    {
+        $chunk = new Chunk();
+        $chunk->sink_id = $this->sinkId;
+        $chunk->chunk_id = $chunkId;
+        return $chunk;
     }
 
     /**
@@ -69,15 +73,21 @@ class SinkScanLocalFiles implements ShouldQueue
      */
     protected function restoreFile(string $filename, Chunk $chunk): void
     {
-        $localFile = LocalFile::createFromFilename($this->sinkId, $filename);
-        $localFile->save();
-
+        $localFile = $this->createMissingFile($filename);
         $chunk->sink_file_id = $localFile->getFile()->id;
         // This is a new, previousy unseen file, so we set the fetch
         // status to finished.
         $chunk->fetch_status = 'finished';
         $chunk->fetch_message = null;
+        $chunk->fetch_size = $localFile->getFile()->size;
         $chunk->fetched_at = now();
         $chunk->save();
+    }
+
+    protected function createMissingFile($filename): LocalFile
+    {
+        $localFile = LocalFile::createFromFilename($this->sinkId, $filename);
+        $localFile->save();
+        return $localFile;
     }
 }
