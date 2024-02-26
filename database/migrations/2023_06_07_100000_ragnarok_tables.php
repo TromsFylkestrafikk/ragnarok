@@ -17,6 +17,7 @@ return new class extends Migration
             $table->char('title', 255)->comment('Title/name of sink for presentation');
             $table->boolean('single_state')->comment('Chunks represent a non-incremental, single state in DB');
             $table->string('impl_class')->comment('Implementation of \Ragnarok\Sink\Sinks\SinkBase');
+            $table->enum('status', ['live', 'suspended', 'disabled'])->default('active')->comment('Sink is live or in suspended state');
             $table->timestamps();
         });
 
