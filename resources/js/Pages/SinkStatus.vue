@@ -247,9 +247,9 @@ function singleChunkOperation(id, operation) {
 /**
  * Perform actual operation on chunk selection
  */
-async function execChunkOperation() {
+async function execOperation() {
     ajaxing.value = true;
-    return axios.patch(`/api/sinks/${props.sink.id}`, {
+    return axios.post(`/api/sinks/${props.sink.id}/operation`, {
         ...filterParams,
         ...execParams,
     }).then((result) => {
@@ -274,7 +274,7 @@ async function submitChunkOperation(event) {
         confDiags.execOp = true;
         return;
     }
-    execChunkOperation();
+    execOperation();
 }
 
 onMounted(() => {
@@ -569,7 +569,7 @@ onMounted(() => {
       <p>This will delete the processed, imported data from database storage.</p>
       <p>Proceed?</p>
     </confirm-dialog>
-    <confirm-dialog v-model="confDiags.execOp" @confirmed="execChunkOperation">
+    <confirm-dialog v-model="confDiags.execOp" @confirmed="execOperation">
       <p>{{ confirmOpText }}</p>
       <p>Really continue?</p>
     </confirm-dialog>

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
-use App\Http\Requests\UpdateSinkRequest;
+use App\Http\Requests\SinkOperationRequest;
 use App\Http\Resources\SinkCollection;
 use App\Http\Resources\SinkResource;
 use App\Http\Helpers\ChunksFilter;
@@ -40,10 +40,18 @@ class SinkApiController extends Controller
         return new SinkResource($sink);
     }
 
+    public function update(Request $request, Sink $sink): Response
+    {
+        $sink->fill($request->input())->save();
+        return response([
+            'sink' => $sink,
+        ]);
+    }
+
     /**
      * Update chunks belonging to this sink.
      */
-    public function update(UpdateSinkRequest $request, Sink $sink): Response
+    public function operation(SinkOperationRequest $request, Sink $sink): Response
     {
         $operation = $request->input('operation');
         $batchId = $this->executeOperation($request, $sink, $operation);
