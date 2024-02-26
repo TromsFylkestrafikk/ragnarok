@@ -49,7 +49,7 @@ class SinkScanLocalFiles implements ShouldQueue
                 continue;
             }
             $chunkId = $sinkHandler->src->filenameToChunkId($filename);
-            if (!$chunkId) {
+            if ($chunkId === null) {
                 $disconnected++;
                 continue;
             }
@@ -60,7 +60,7 @@ class SinkScanLocalFiles implements ShouldQueue
         $this->info('FINISHED. Added %d files. Disconnected files found: %d', $new, $disconnected);
     }
 
-    protected function createMissingChunk($chunkId): Chunk
+    protected function createMissingChunk(string $chunkId): Chunk
     {
         $chunk = new Chunk();
         $chunk->sink_id = $this->sinkId;
