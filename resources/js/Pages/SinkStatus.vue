@@ -288,6 +288,13 @@ onMounted(() => {
         if (event.batch.progress >= 100 && event.batch.cancelledAt) {
             touchSearch();
         }
+    }).listen('SinkUpdate', (event) => {
+        if (event.sinkId === props.sink.id && event.what === 'local-scan-complete') {
+            touchSearch();
+            snackProps.color = null;
+            snackProps.message = event.message;
+            snackProps.model = true;
+        }
     });
 });
 </script>
