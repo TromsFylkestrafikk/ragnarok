@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\SinkUpdate;
 use App\Models\Chunk;
 use App\Facades\Ragnarok;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -58,6 +59,11 @@ class SinkScanLocalFiles implements ShouldQueue
             $new++;
         }
         $this->info('FINISHED. Added %d files. Disconnected files found: %d', $new, $disconnected);
+        SinkUpdate::dispatch(
+            $this->sinkId,
+            'local-scan-complete',
+            sprintf('File system scan complete. Added %d files.', $new)
+        );
     }
 
     protected function createMissingChunk(string $chunkId): Chunk
