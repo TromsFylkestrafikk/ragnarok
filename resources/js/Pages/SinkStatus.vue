@@ -331,7 +331,12 @@ onMounted(() => {
               <v-icon>mdi-menu</v-icon>
               <chunk-menu activator="parent" :sink-id="sink.id" />
             </v-btn>
-            <v-toolbar-title>{{ sink.title }}</v-toolbar-title>
+            <v-toolbar-title>
+              {{ sink.title }}
+              <span v-if="sink.status !== 'live'">
+                ({{ sink.status }})
+              </span>
+            </v-toolbar-title>
             <v-spacer />
             <v-col v-if="showOp" class="text-grey">
               {{ selectionCount }} selected
