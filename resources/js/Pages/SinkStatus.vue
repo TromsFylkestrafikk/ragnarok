@@ -48,12 +48,15 @@ const chunksKeyed = computed(() => {
 // Operation form and input selection
 // -----------------------------------------------------------------------------
 const { haveOperations } = usePermissions(props);
-const operationItems = ref([
-    { value: 'fetch', title: 'Fetch from sink' },
-    { value: 'deleteFetched', title: 'Delete fetched' },
-    { value: 'import', title: 'Import to DB' },
-    { value: 'deleteImported', title: 'Delete imported' },
-]);
+const operationItems = computed(() => {
+    const items = props.sink.status === 'live' ? [{ value: 'fetch', title: 'Fetch from sink' }] : [];
+    return [
+        ...items,
+        { value: 'deleteFetched', title: 'Delete fetched' },
+        { value: 'import', title: 'Import to DB' },
+        { value: 'deleteImported', title: 'Delete imported' },
+    ];
+});
 
 const execParams = reactive({
     selection: [],
