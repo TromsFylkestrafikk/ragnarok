@@ -217,6 +217,12 @@ function removeFromSelection(idToRemove) {
     }
 }
 
+function canImport(chunk) {
+    return props.permissions.operations.import
+        && (props.sink.status === 'live' || chunk.fetch_status === 'finished')
+        && chunk.need_import;
+}
+
 // -----------------------------------------------------------------------------
 // Loading and operation execution!
 // -----------------------------------------------------------------------------
@@ -415,7 +421,7 @@ onMounted(() => {
             </v-card-text>
           </v-expand-transition>
         </v-card>
-        <batch-operations :sink-id="sink.id" :permissions="props.permissions" />
+        <batch-operations :sink-id="sink.id" :permissions="permissions" />
       </template>
       <template #thead>
         <tr>
@@ -469,7 +475,7 @@ onMounted(() => {
       </template>
       <template #item.chunk_id="{ item, value }">
         <a
-          v-if="props.permissions.downloadChunks && item.fetch_status === 'finished'"
+          v-if="permissions.downloadChunks && item.fetch_status === 'finished'"
           :href="`/api/sinks/${item.sink_id}/chunks/${item.id}/download`"
         >
           {{ value }}
@@ -493,7 +499,7 @@ onMounted(() => {
           </v-chip>
         </v-badge>
         <v-btn
-          v-if="props.permissions.operations.fetch && item.need_fetch"
+          v-if="props.permissions.operations.fetch && item.need_fetch && sink.status === 'live'"
           icon
           variant="plain"
           @click="singleChunkOperation(item.id, 'fetch')"
@@ -504,7 +510,7 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="props.permissions.operations.deleteFetched && item.can_delete_fetched"
+          v-if="permissions.operations.deleteFetched && item.can_delete_fetched"
           icon
           variant="plain"
           @click="confirmChunkDeletion(item.id)"
@@ -531,7 +537,7 @@ onMounted(() => {
           </v-tooltip>
         </v-chip>
         <v-btn
-          v-if="props.permissions.operations.import && item.need_import"
+          v-if="canImport(item)"
           icon
           variant="plain"
           @click="singleChunkOperation(item.id, 'import')"
@@ -542,7 +548,7 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="props.permissions.operations.deleteImported && item.can_delete_imported"
+          v-if="permissions.operations.deleteImported && item.can_delete_imported"
           icon
           variant="plain"
           @click="confirmImportDeletion(item.id)"

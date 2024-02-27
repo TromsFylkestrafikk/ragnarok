@@ -34,7 +34,7 @@ const sinkIsBusy = ref({});
 const canImport = computed(() => {
     const ret = {};
     forEach(props.sinks, (sink) => {
-        ret[sink.id] = sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
+        ret[sink.id] = sink.status === 'live' && sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
     });
     return ret;
 });
