@@ -42,7 +42,9 @@ class SinkApiController extends Controller
     public function update(Request $request, Sink $sink): Response
     {
         $sink->fill($request->input())->save();
+        Ragnarok::getSinkHandler($sink->id)->flushCache();
         return response([
+            'status' => true,
             'sink' => $sink,
         ]);
     }

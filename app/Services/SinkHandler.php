@@ -205,6 +205,15 @@ class SinkHandler
     }
 
     /**
+     * Flush cache related to this sink
+     */
+    public function flushCache(): SinkHandler
+    {
+        Cache::forget($this->initCacheKey());
+        return $this;
+    }
+
+    /**
      * Perform given operation and update chunk status.
      *
      * @param Closure $run
