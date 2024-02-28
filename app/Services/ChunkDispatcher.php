@@ -91,7 +91,7 @@ class ChunkDispatcher
      */
     public function fetch($ids): string|null
     {
-        if ($this->sink->status !== 'live') {
+        if ($this->sink->is_live) {
             return null;
         }
         return $this->dispatchJobs($this->makeBatchJobs(FetchChunk::class, $ids), __FUNCTION__);

@@ -49,7 +49,7 @@ const chunksKeyed = computed(() => {
 // -----------------------------------------------------------------------------
 const { haveOperations } = usePermissions(props);
 const operationItems = computed(() => {
-    const items = props.sink.status === 'live' ? [{ value: 'fetch', title: 'Fetch from sink' }] : [];
+    const items = props.sink.is_live ? [{ value: 'fetch', title: 'Fetch from sink' }] : [];
     return [
         ...items,
         { value: 'deleteFetched', title: 'Delete fetched' },
@@ -222,7 +222,7 @@ function removeFromSelection(idToRemove) {
 
 function canImport(chunk) {
     return props.permissions.operations.import
-        && (props.sink.status === 'live' || chunk.fetch_status === 'finished')
+        && (props.sink.is_live || chunk.fetch_status === 'finished')
         && chunk.need_import;
 }
 
@@ -502,7 +502,7 @@ onMounted(() => {
           </v-chip>
         </v-badge>
         <v-btn
-          v-if="props.permissions.operations.fetch && item.need_fetch && sink.status === 'live'"
+          v-if="props.permissions.operations.fetch && item.need_fetch && sink.is_live"
           icon
           variant="plain"
           @click="singleChunkOperation(item.id, 'fetch')"

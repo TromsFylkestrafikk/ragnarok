@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 /**
  * \App\Models\Sink
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool|null $single_state Chunks represent a non-incremental, single state in DB
  * @property string $impl_class Implementation of \Ragnarok\Sink\Sinks\SinkBase
  * @property string|null $status Sink is live or in suspended state
+ * @property bool $is_live
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\BatchSink> $batches
@@ -38,6 +40,7 @@ class Sink extends Model
     protected $table = 'ragnarok_sinks';
     protected $keyType = 'string';
     protected $casts = ['single_state' => 'boolean'];
+    protected $appends = ['is_live'];
 
     public function chunks(): HasMany
     {
@@ -47,5 +50,10 @@ class Sink extends Model
     public function batches(): HasMany
     {
         return $this->hasMany(BatchSink::class);
+    }
+
+    public function isLive(): Attribute
+    {
+        return Attribute::make(get: fn(mixed $value, array $attr) => $attr['status'] === 'live');
     }
 }

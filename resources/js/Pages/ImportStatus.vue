@@ -34,15 +34,15 @@ const sinkIsBusy = ref({});
 const canImport = computed(() => {
     const ret = {};
     forEach(props.sinks, (sink) => {
-        ret[sink.id] = sink.status === 'live' && sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
+        ret[sink.id] = sink.is_live && sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
     });
     return ret;
 });
 
 function rowProps({ item }) {
-    return item.status !== 'live' ? {
+    return item.is_live ? null : {
         class: [`status-${item.status}`],
-    } : null;
+    };
 }
 
 function importNew(sinkId) {
@@ -55,6 +55,7 @@ function setSinkStatus(sinkId, status) {
     axios.patch(`/api/sinks/${sinkId}`, { status })
         .then((result) => {
             sink.status = result.data.sink.status;
+            sink.is_live = result.data.sink.is_live;
         });
 }
 

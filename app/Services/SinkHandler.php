@@ -260,7 +260,7 @@ class SinkHandler
         if (Cache::get($this->initCacheKey())) {
             return $this;
         }
-        $newIds = $this->sink->status === 'live' ? $this->chunkIdsNotInDb() : [];
+        $newIds = $this->sink->is_live ? $this->chunkIdsNotInDb() : [];
         $records = [];
         foreach ($newIds as $chunkId) {
             $records[] = [
