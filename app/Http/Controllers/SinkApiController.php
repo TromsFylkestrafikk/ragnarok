@@ -83,7 +83,7 @@ class SinkApiController extends Controller
         if ($operation === 'importNew') {
             return Ragnarok::getSinkHandler($sink->id)->importNewChunks();
         }
-        return (new ChunkDispatcher($sink->id))
+        return (new ChunkDispatcher($sink))
             ->setForceFetch((bool) $request->input('forceFetch'))
             ->setForceImport((bool) $request->input('forceImport'))
             ->{$operation}($this->getChunkIdsFromRequest($request, $sink));

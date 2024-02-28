@@ -99,7 +99,7 @@ class SinkHandler
     public function getChunkDispatcher(): ChunkDispatcher
     {
         if ($this->dispatcher === null) {
-            $this->dispatcher = new ChunkDispatcher($this->sink->id);
+            $this->dispatcher = new ChunkDispatcher($this->sink);
         }
         return $this->dispatcher;
     }
