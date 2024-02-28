@@ -93,10 +93,10 @@ onMounted(() => {
           <Link :href="`/sinks/${value}`">
             {{ item.title }}
           </Link>
-          <v-chip v-if="item.newChunks > 0 && item.status == 'live'" color="blue" class="ml-2">
+          <v-chip v-if="item.newChunks > 0 && item.is_live" color="blue" class="ml-2">
             {{ item.newChunks }} new
           </v-chip>
-          <v-icon v-if="item.status !=='live'" icon="mdi-pause" />
+          <v-icon v-if="! item.is_live" icon="mdi-pause" />
         </div>
       </template>
       <template #item.lastImportedChunk.chunk_id="{ item, value }">
@@ -124,10 +124,10 @@ onMounted(() => {
           <v-icon icon="mdi-dots-vertical" />
           <v-menu activator="parent">
             <v-list>
-              <v-list-item v-if="item.status !== 'suspended'" append-icon="mdi-pause" @click="setSinkStatus(item.id, 'suspended')">
+              <v-list-item v-if="item.is_live" append-icon="mdi-pause" @click="setSinkStatus(item.id, 'suspended')">
                 <v-list-item-title>Suspend sink</v-list-item-title>
               </v-list-item>
-              <v-list-item v-if="item.status !== 'live'" append-icon="mdi-play" @click="setSinkStatus(item.id, 'live')">
+              <v-list-item v-if="!item.is_live" append-icon="mdi-play" @click="setSinkStatus(item.id, 'live')">
                 <v-list-item-title>Resume sink</v-list-item-title>
               </v-list-item>
             </v-list>
