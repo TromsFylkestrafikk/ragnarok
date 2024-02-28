@@ -19,6 +19,7 @@ class SinkApiController extends Controller
 
     public function __construct()
     {
+        $this->authorizeResource(Sink::class, 'sink');
         $this->middleware('sinks');
     }
 
@@ -27,7 +28,6 @@ class SinkApiController extends Controller
      */
     public function index()
     {
-        $this->authorize('read sinks');
         return new SinkCollection(Sink::all());
     }
 
@@ -36,7 +36,6 @@ class SinkApiController extends Controller
      */
     public function show(Sink $sink)
     {
-        $this->authorize('view', $sink);
         return new SinkResource($sink);
     }
 
@@ -67,6 +66,7 @@ class SinkApiController extends Controller
      */
     public function scanLocalFiles(Sink $sink): Response
     {
+        $this->authorize('update', $sink);
         Ragnarok::getSinkHandler($sink->id)->scanLocalFiles();
         /** @var Response */
         return response([
