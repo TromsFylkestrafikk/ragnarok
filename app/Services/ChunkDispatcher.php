@@ -7,8 +7,9 @@ use App\Jobs\DeleteFetchedChunk;
 use App\Jobs\DeleteImportedChunk;
 use App\Jobs\FetchChunk;
 use App\Jobs\ImportChunk;
-use App\Models\Chunk;
 use App\Models\BatchSink;
+use App\Models\Chunk;
+use App\Models\Sink;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -44,9 +45,9 @@ class ChunkDispatcher
      */
     protected $chunkBatchMap = [];
 
-    public function __construct(protected string $sinkId)
+    public function __construct(protected Sink $sink)
     {
-        $this->logPrintfInit("[ChunkDispatcher %s]: ", $sinkId);
+        $this->logPrintfInit("[ChunkDispatcher %s]: ", $sink->id);
     }
 
     /**
@@ -90,6 +91,9 @@ class ChunkDispatcher
      */
     public function fetch($ids): string|null
     {
+        if ($this->sink->is_live) {
+            return null;
+        }
         return $this->dispatchJobs($this->makeBatchJobs(FetchChunk::class, $ids), __FUNCTION__);
     }
 
@@ -168,6 +172,9 @@ class ChunkDispatcher
         return $models->reduce(function (?array $jobs, Model $chunk) {
             /** @var Chunk $chunk */
             $needFetch = $this->forceFetch || $chunk->fetch_status !== 'finished';
+            if ($needFetch && $this->sink->status !== 'live') {
+                return $jobs;
+            }
             $jobs[] = $needFetch ? [new FetchChunk($chunk->id), new ImportChunk($chunk->id)] : new ImportChunk($chunk->id);
             if ($needFetch) {
                 $this->addPendingChunk($chunk->id, FetchChunk::class);
@@ -193,7 +200,7 @@ class ChunkDispatcher
         }
         $start = microtime(true);
         // The batch is serialized. No use of $this in callbacks.
-        $sinkId = $this->sinkId;
+        $sinkId = $this->sink->id;
         $batch = Bus::batch($jobs)->name("{$sinkId}: $name")->then(function (Batch $batch) use ($start) {
             Log::info(sprintf(
                 '[%s]: Processed %d of %d jobs in %.2f seconds. Canceled: %s, Failed: %d. Batch ID: %s',
@@ -229,7 +236,7 @@ class ChunkDispatcher
      */
     protected function getChunkModels(array $chunkIds, string $jobClass): Collection
     {
-        $query = Chunk::where('sink_id', $this->sinkId)->whereIn('id', $chunkIds);
+        $query = Chunk::where('sink_id', $this->sink->id)->whereIn('id', $chunkIds);
         $scope = [
             FetchChunk::class => $this->forceFetch ? 'canFetch' : 'needFetch',
             ImportChunk::class => $this->forceImport ? 'canImport' : 'needImport',
@@ -260,7 +267,7 @@ class ChunkDispatcher
     {
         /** @var BatchSink $bSink */
         $bSink = BatchSink::firstOrNew(['batch_id' => $batch->id]);
-        $bSink->sink_id = $this->sinkId;
+        $bSink->sink_id = $this->sink->id;
         $bSink->save();
         foreach (['fetch_batch', 'import_batch'] as $column) {
             if (!empty($this->chunkBatchMap[$column])) {

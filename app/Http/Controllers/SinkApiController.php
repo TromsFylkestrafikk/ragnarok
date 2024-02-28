@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Facades\Ragnarok;
-use App\Http\Requests\UpdateSinkRequest;
+use App\Http\Requests\SinkOperationRequest;
 use App\Http\Resources\SinkCollection;
 use App\Http\Resources\SinkResource;
 use App\Http\Helpers\ChunksFilter;
@@ -19,6 +19,7 @@ class SinkApiController extends Controller
 
     public function __construct()
     {
+        $this->authorizeResource(Sink::class, 'sink');
         $this->middleware('sinks');
     }
 
@@ -27,7 +28,6 @@ class SinkApiController extends Controller
      */
     public function index()
     {
-        $this->authorize('read sinks');
         return new SinkCollection(Sink::all());
     }
 
@@ -36,14 +36,23 @@ class SinkApiController extends Controller
      */
     public function show(Sink $sink)
     {
-        $this->authorize('view', $sink);
         return new SinkResource($sink);
+    }
+
+    public function update(Request $request, Sink $sink): Response
+    {
+        $sink->fill($request->input())->save();
+        Ragnarok::getSinkHandler($sink->id)->flushCache();
+        return response([
+            'status' => true,
+            'sink' => $sink,
+        ]);
     }
 
     /**
      * Update chunks belonging to this sink.
      */
-    public function update(UpdateSinkRequest $request, Sink $sink): Response
+    public function operation(SinkOperationRequest $request, Sink $sink): Response
     {
         $operation = $request->input('operation');
         $batchId = $this->executeOperation($request, $sink, $operation);
@@ -59,6 +68,7 @@ class SinkApiController extends Controller
      */
     public function scanLocalFiles(Sink $sink): Response
     {
+        $this->authorize('update', $sink);
         Ragnarok::getSinkHandler($sink->id)->scanLocalFiles();
         /** @var Response */
         return response([
@@ -75,7 +85,7 @@ class SinkApiController extends Controller
         if ($operation === 'importNew') {
             return Ragnarok::getSinkHandler($sink->id)->importNewChunks();
         }
-        return (new ChunkDispatcher($sink->id))
+        return (new ChunkDispatcher($sink))
             ->setForceFetch((bool) $request->input('forceFetch'))
             ->setForceImport((bool) $request->input('forceImport'))
             ->{$operation}($this->getChunkIdsFromRequest($request, $sink));

@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateSinkRequest extends FormRequest
+class SinkOperationRequest extends FormRequest
 {
     use ChunkFormRules;
 

@@ -53,6 +53,9 @@ class RagnarokApi
             return $this;
         }
         $this->getSinkHandlers()->each(function (SinkHandler $handler) use ($schedule) {
+            if (! $handler->sink->is_live) {
+                return;
+            }
             $importEvent = $schedule->call([$handler, 'importNewChunks']);
             if ($handler->src->cron) {
                 $importEvent->cron($handler->src->cron);

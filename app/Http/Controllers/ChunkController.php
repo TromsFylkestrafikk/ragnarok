@@ -42,7 +42,7 @@ class ChunkController extends Controller
     public function update(UpdateChunkRequest $request, Sink $sink, Chunk $chunk): Response
     {
         $operation = $request->input('operation');
-        $batchId = (new ChunkDispatcher($sink->id))
+        $batchId = (new ChunkDispatcher($sink))
             ->setForceFetch($request->input('forceFetch'))
             ->setForceImport($request->input('forceImport'))
             ->{$operation}([$chunk->id]);

@@ -48,12 +48,15 @@ const chunksKeyed = computed(() => {
 // Operation form and input selection
 // -----------------------------------------------------------------------------
 const { haveOperations } = usePermissions(props);
-const operationItems = ref([
-    { value: 'fetch', title: 'Fetch from sink' },
-    { value: 'deleteFetched', title: 'Delete fetched' },
-    { value: 'import', title: 'Import to DB' },
-    { value: 'deleteImported', title: 'Delete imported' },
-]);
+const operationItems = computed(() => {
+    const items = props.sink.is_live ? [{ value: 'fetch', title: 'Fetch from sink' }] : [];
+    return [
+        ...items,
+        { value: 'deleteFetched', title: 'Delete fetched' },
+        { value: 'import', title: 'Import to DB' },
+        { value: 'deleteImported', title: 'Delete imported' },
+    ];
+});
 
 const execParams = reactive({
     selection: [],
@@ -217,6 +220,12 @@ function removeFromSelection(idToRemove) {
     }
 }
 
+function canImport(chunk) {
+    return props.permissions.operations.import
+        && (props.sink.is_live || chunk.fetch_status === 'finished')
+        && chunk.need_import;
+}
+
 // -----------------------------------------------------------------------------
 // Loading and operation execution!
 // -----------------------------------------------------------------------------
@@ -247,9 +256,9 @@ function singleChunkOperation(id, operation) {
 /**
  * Perform actual operation on chunk selection
  */
-async function execChunkOperation() {
+async function execOperation() {
     ajaxing.value = true;
-    return axios.patch(`/api/sinks/${props.sink.id}`, {
+    return axios.post(`/api/sinks/${props.sink.id}/operation`, {
         ...filterParams,
         ...execParams,
     }).then((result) => {
@@ -274,7 +283,7 @@ async function submitChunkOperation(event) {
         confDiags.execOp = true;
         return;
     }
-    execChunkOperation();
+    execOperation();
 }
 
 onMounted(() => {
@@ -331,7 +340,12 @@ onMounted(() => {
               <v-icon>mdi-menu</v-icon>
               <chunk-menu activator="parent" :sink-id="sink.id" />
             </v-btn>
-            <v-toolbar-title>{{ sink.title }}</v-toolbar-title>
+            <v-toolbar-title>
+              {{ sink.title }}
+              <span v-if="sink.status !== 'live'">
+                ({{ sink.status }})
+              </span>
+            </v-toolbar-title>
             <v-spacer />
             <v-col v-if="showOp" class="text-grey">
               {{ selectionCount }} selected
@@ -410,7 +424,7 @@ onMounted(() => {
             </v-card-text>
           </v-expand-transition>
         </v-card>
-        <batch-operations :sink-id="sink.id" :permissions="props.permissions" />
+        <batch-operations :sink-id="sink.id" :permissions="permissions" />
       </template>
       <template #thead>
         <tr>
@@ -464,7 +478,7 @@ onMounted(() => {
       </template>
       <template #item.chunk_id="{ item, value }">
         <a
-          v-if="props.permissions.downloadChunks && item.fetch_status === 'finished'"
+          v-if="permissions.downloadChunks && item.fetch_status === 'finished'"
           :href="`/api/sinks/${item.sink_id}/chunks/${item.id}/download`"
         >
           {{ value }}
@@ -488,7 +502,7 @@ onMounted(() => {
           </v-chip>
         </v-badge>
         <v-btn
-          v-if="props.permissions.operations.fetch && item.need_fetch"
+          v-if="props.permissions.operations.fetch && item.need_fetch && sink.is_live"
           icon
           variant="plain"
           @click="singleChunkOperation(item.id, 'fetch')"
@@ -499,7 +513,7 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="props.permissions.operations.deleteFetched && item.can_delete_fetched"
+          v-if="permissions.operations.deleteFetched && item.can_delete_fetched"
           icon
           variant="plain"
           @click="confirmChunkDeletion(item.id)"
@@ -526,7 +540,7 @@ onMounted(() => {
           </v-tooltip>
         </v-chip>
         <v-btn
-          v-if="props.permissions.operations.import && item.need_import"
+          v-if="canImport(item)"
           icon
           variant="plain"
           @click="singleChunkOperation(item.id, 'import')"
@@ -537,7 +551,7 @@ onMounted(() => {
           </v-tooltip>
         </v-btn>
         <v-btn
-          v-if="props.permissions.operations.deleteImported && item.can_delete_imported"
+          v-if="permissions.operations.deleteImported && item.can_delete_imported"
           icon
           variant="plain"
           @click="confirmImportDeletion(item.id)"
@@ -569,7 +583,7 @@ onMounted(() => {
       <p>This will delete the processed, imported data from database storage.</p>
       <p>Proceed?</p>
     </confirm-dialog>
-    <confirm-dialog v-model="confDiags.execOp" @confirmed="execChunkOperation">
+    <confirm-dialog v-model="confDiags.execOp" @confirmed="execOperation">
       <p>{{ confirmOpText }}</p>
       <p>Really continue?</p>
     </confirm-dialog>

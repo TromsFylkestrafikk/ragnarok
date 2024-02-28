@@ -99,7 +99,7 @@ class SinkHandler
     public function getChunkDispatcher(): ChunkDispatcher
     {
         if ($this->dispatcher === null) {
-            $this->dispatcher = new ChunkDispatcher($this->sink->id);
+            $this->dispatcher = new ChunkDispatcher($this->sink);
         }
         return $this->dispatcher;
     }
@@ -205,6 +205,15 @@ class SinkHandler
     }
 
     /**
+     * Flush cache related to this sink
+     */
+    public function flushCache(): SinkHandler
+    {
+        Cache::forget($this->initCacheKey());
+        return $this;
+    }
+
+    /**
      * Perform given operation and update chunk status.
      *
      * @param Closure $run
@@ -260,7 +269,7 @@ class SinkHandler
         if (Cache::get($this->initCacheKey())) {
             return $this;
         }
-        $newIds = $this->chunkIdsNotInDb();
+        $newIds = $this->sink->is_live ? $this->chunkIdsNotInDb() : [];
         $records = [];
         foreach ($newIds as $chunkId) {
             $records[] = [

@@ -23,6 +23,7 @@ class RolesAndPermissionSeeder extends Seeder
         Permission::create(['name' => 'delete users']);
 
         Permission::create(['name' => 'read sinks']);
+        Permission::create(['name' => 'edit sinks']);
         Permission::create(['name' => 'read chunks']);
         Permission::create(['name' => 'fetch chunks']);
         Permission::create(['name' => 'import chunks']);
@@ -38,6 +39,7 @@ class RolesAndPermissionSeeder extends Seeder
             'delete users',
             'edit users',
             'read sinks',
+            'edit sinks',
             'read chunks',
             'fetch chunks',
             'import chunks',
@@ -49,6 +51,7 @@ class RolesAndPermissionSeeder extends Seeder
 
         Role::create(['name' => 'maintainer'])->givePermissionTo([
             'read sinks',
+            'edit sinks',
             'read chunks',
             'fetch chunks',
             'import chunks',

@@ -34,14 +34,29 @@ const sinkIsBusy = ref({});
 const canImport = computed(() => {
     const ret = {};
     forEach(props.sinks, (sink) => {
-        ret[sink.id] = sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
+        ret[sink.id] = sink.is_live && sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
     });
     return ret;
 });
 
+function rowProps({ item }) {
+    return item.is_live ? null : {
+        class: [`status-${item.status}`],
+    };
+}
+
 function importNew(sinkId) {
     sinkIsBusy.value[sinkId] = true;
-    return axios.patch(`/api/sinks/${sinkId}`, { operation: 'importNew' });
+    return axios.patch(`/api/sinks/${sinkId}/operation`, { operation: 'importNew' });
+}
+
+function setSinkStatus(sinkId, status) {
+    const sink = props.sinks[sinkId];
+    axios.patch(`/api/sinks/${sinkId}`, { status })
+        .then((result) => {
+            sink.status = result.data.sink.status;
+            sink.is_live = result.data.sink.is_live;
+        });
 }
 
 const refreshSink = throttle((sinkId) => axios.get(`/api/sinks/${sinkId}`).then((result) => {
@@ -70,15 +85,19 @@ onMounted(() => {
       :items="sinksArray"
       items-per-page="100"
       item-value="id"
+      :row-props="rowProps"
       no-filter
     >
       <template #item.id="{ item, value }">
-        <Link :href="`/sinks/${value}`">
-          {{ item.title }}
-        </Link>
-        <v-chip v-if="item.newChunks > 0" color="blue" class="ml-2">
-          {{ item.newChunks }} new
-        </v-chip>
+        <div class="d-flex justify-space-between">
+          <Link :href="`/sinks/${value}`">
+            {{ item.title }}
+          </Link>
+          <v-chip v-if="item.newChunks > 0 && item.is_live" color="blue" class="ml-2">
+            {{ item.newChunks }} new
+          </v-chip>
+          <v-icon v-if="! item.is_live" icon="mdi-pause" />
+        </div>
       </template>
       <template #item.lastImportedChunk.chunk_id="{ item, value }">
         {{ value }}
@@ -101,6 +120,19 @@ onMounted(() => {
             Import new chunks
           </v-tooltip>
         </v-btn>
+        <v-btn icon variant="plain">
+          <v-icon icon="mdi-dots-vertical" />
+          <v-menu activator="parent">
+            <v-list>
+              <v-list-item v-if="item.is_live" append-icon="mdi-pause" @click="setSinkStatus(item.id, 'suspended')">
+                <v-list-item-title>Suspend sink</v-list-item-title>
+              </v-list-item>
+              <v-list-item v-if="!item.is_live" append-icon="mdi-play" @click="setSinkStatus(item.id, 'live')">
+                <v-list-item-title>Resume sink</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </v-btn>
         <v-progress-circular v-if="sinkIsBusy[value]" indeterminate />
       </template>
       <template #bottom>
@@ -112,3 +144,9 @@ onMounted(() => {
     </v-data-table>
   </app-layout>
 </template>
+
+<style lang="scss">
+  .status-suspended {
+    background-color: rgba(128, 128, 128, 0.1);
+  }
+</style>

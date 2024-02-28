@@ -21,4 +21,9 @@ class SinkPolicy
     {
         return $user->can('read sinks');
     }
+
+    public function update(User $user): bool
+    {
+        return $user->can('edit sinks');
+    }
 }

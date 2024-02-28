@@ -33,6 +33,7 @@ stack, where we shoe-horn in Vuetify as our main UI.
 - Local scan feature which (re-) adds files to sink chunks as fetched.
 - Sinks can have single-state chunks, i.e. each chunk replaces the
   entire destination DB store.
+- Sinks can be paused/resumed from fetching data from its origin.
 
 ### Removed
 - Example dashboard (authenticated) and welcome (anonymous) scaffolding pages.
