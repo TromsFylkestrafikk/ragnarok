@@ -2,7 +2,10 @@
     "name": "ragnarok/ragnarok",
     "type": "project",
     "description": "Data import front-end.",
-    "keywords": ["data-lake", "front-end"],
+    "keywords": [
+        "data-lake",
+        "front-end"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.1",
@@ -16,6 +19,7 @@
         "ragnarok/consat": "dev-main",
         "ragnarok/entur": "dev-main",
         "ragnarok/fara": "dev-main",
+        "ragnarok/mobitech": "dev-main",
         "ragnarok/ruter": "dev-main",
         "ragnarok/sink": "dev-main",
         "ragnarok/skyttel": "dev-main",
@@ -27,16 +31,17 @@
         "barryvdh/laravel-ide-helper": "^2.13",
         "beyondcode/laravel-dump-server": "^1.9",
         "fakerphp/faker": "^1.9.1",
+        "larastan/larastan": "^2.8",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.18",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",
-        "larastan/larastan": "^2.8",
         "phpmd/phpmd": "^2.13",
         "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^10.0",
         "spatie/laravel-ignition": "^2.0",
         "squizlabs/php_codesniffer": "^3.7",
+        "stevebauman/autodoc-facades": "^1.1",
         "vimeo/psalm": "^5.15"
     },
     "autoload": {
@@ -66,44 +71,48 @@
             "@php artisan key:generate --ansi"
         ]
     },
-    "repositories": [
-        {
+    "repositories": {
+        "0": {
             "type": "github",
             "url": "https://github.com/TromsFylkestrafikk/christmas-tree-parser"
         },
-        {
-            "type": "github",
+        "1": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/laravel-netex"
         },
-        {
-            "type": "github",
+        "2": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-consat"
         },
-        {
-            "type": "github",
+        "3": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-entur"
         },
-        {
-            "type": "github",
+        "4": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-fara"
         },
-        {
-            "type": "github",
+        "5": {
+            "type": "vcs",
+            "url": "https://github.com/TromsFylkestrafikk/ragnarok-mobitech"
+        },
+        "6": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-ruter"
         },
-        {
-            "type": "github",
+        "7": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-sink"
         },
-        {
-            "type": "github",
+        "8": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-skyttel"
         },
-        {
-            "type": "github",
+        "9": {
+            "type": "vcs",
             "url": "https://github.com/TromsFylkestrafikk/ragnarok-strex"
         }
-    ],
+    },
     "extra": {
         "laravel": {
             "dont-discover": []
