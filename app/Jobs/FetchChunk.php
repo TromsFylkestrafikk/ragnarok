@@ -3,15 +3,16 @@
 namespace App\Jobs;
 
 use App\Facades\Ragnarok;
+use App\Jobs\Middleware\SkipOnBatchErrorLimit;
+use App\Models\Chunk;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Chunk;
 
 class FetchChunk implements ShouldQueue
 {
@@ -48,7 +49,8 @@ class FetchChunk implements ShouldQueue
     public function middleware(): array
     {
         return [
-            (new WithoutOverlapping(sprintf('chunk-fetch-%d', $this->modelId)))->dontRelease(),
+            (new WithoutOverlapping(sprintf('chunk-%d-fetch', $this->modelId)))->dontRelease(),
+            new SkipOnBatchErrorLimit(config('ragnarok.max_batch_errors'), config('ragnarok.max_batch_errors_unit', null)),
             new SkipIfBatchCancelled(),
         ];
     }

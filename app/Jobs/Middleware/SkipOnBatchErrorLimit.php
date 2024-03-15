@@ -2,6 +2,9 @@
 
 namespace App\Jobs\Middleware;
 
+use Illuminate\Bus\Batch;
+use Illuminate\Bus\Batchable;
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Support\Facades\Log;
 
 class SkipOnBatchErrorLimit
@@ -14,11 +17,14 @@ class SkipOnBatchErrorLimit
         /**
          * If this is '%', limit is in percentage of total jobs
          */
-        public $unit = null
+        public string|null $unit = null
     ) {
         //
     }
 
+    /**
+     * @param callable $next
+     */
     public function handle($job, $next): void
     {
         $batch = $job->batch();

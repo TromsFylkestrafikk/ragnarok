@@ -3,15 +3,15 @@
 namespace App\Jobs;
 
 use App\Facades\Ragnarok;
-use App\Models\Chunk;
 use App\Jobs\Middleware\SkipOnBatchErrorLimit;
+use App\Models\Chunk;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 
 class ImportChunk implements ShouldQueue
