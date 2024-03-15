@@ -232,7 +232,12 @@ class SinkHandler
         try {
             $result = $run();
         } catch (Exception $except) {
-            $this->error("Got exception in %s stage where final state should be %s", $stage, $finalState);
+            $this->error(
+                "Chunk %s: Got exception in %s stage with target state: %s",
+                $chunk->chunk_id,
+                $stage,
+                $finalState
+            );
             $chunk->{$stage . '_status'} = 'failed';
             $chunk->{$stage . '_message'} = Utils::exceptToStr($except);
             $chunk->{$stage . '_batch'} = null;

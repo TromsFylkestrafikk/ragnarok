@@ -66,9 +66,6 @@ class BatchApiController extends Controller
             return response(['status' => false, 'message' => 'Batch is not running', 'batchId' => $batch->id]);
         }
         $batch->cancel();
-        // Remove batch info on non-running chunks
-        Chunk::whereFetchBatch($batchId)->whereNot('fetch_status', 'in_progress')->update(['fetch_batch' => null]);
-        Chunk::whereImportBatch($batchId)->whereNot('import_status', 'in_progress')->update(['import_batch' => null]);
         return response([
             'status' => true,
             'message' => 'Batch cancelled',

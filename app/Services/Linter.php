@@ -26,7 +26,7 @@ class Linter
         /** @var \Illuminate\Support\Collection<string, array> $batches */
         $batches = DB::table('job_batches')
             ->whereNull('finished_at')
-            ->orWhereDate('finished_at', '>', $newerThan)
+            ->orWhere('finished_at', '>', $newerThan->getTimestamp())
             ->get()
             ->keyBy('id');
         // Case 1: Chunks members of batches that are finished/dead.

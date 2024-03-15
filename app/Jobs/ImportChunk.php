@@ -50,8 +50,8 @@ class ImportChunk implements ShouldQueue
     {
         return [
             new WithoutOverlapping(sprintf('chunk-%d-import', $this->modelId)),
-            new SkipOnBatchErrorLimit(config('ragnarok.max_batch_errors'), config('ragnarok.max_batch_errors_unit', null)),
             new SkipIfBatchCancelled(),
+            new SkipOnBatchErrorLimit(config('ragnarok.max_batch_errors'), config('ragnarok.max_batch_errors_unit', null)),
         ];
     }
 }
