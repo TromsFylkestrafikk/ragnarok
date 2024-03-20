@@ -3,9 +3,8 @@
 namespace App\Jobs\Middleware;
 
 use App\Models\Chunk;
+use App\Services\ChunkDispatcher;
 use Illuminate\Bus\Batch;
-use Illuminate\Bus\Batchable;
-use Illuminate\Contracts\Queue\Job;
 use Illuminate\Support\Facades\Log;
 
 class SkipOnBatchErrorLimit
@@ -31,27 +30,17 @@ class SkipOnBatchErrorLimit
         /** @var Batch $batch */
         $batch = $job->batch();
         $limit = $this->unit === '%' ? $this->limit * $batch->totalJobs / 100 : $this->limit;
+        Log::warning(sprintf("[SkipOnBatchErrorLimit]: limit: %d, failed: %d", $limit, $batch->failedJobs));
         if ($batch->failedJobs >= $limit) {
             if (!$batch->cancelled()) {
                 Log::error(sprintf(
-                    '[SkipOnBatchErrorLimit]: Too many failed jobs (%d / %d). Cancelling.',
+                    "[SkipOnBatchErrorLimit]: Too many failed jobs (%d / %d). Cancelling.",
                     $limit,
                     $batch->totalJobs
                 ));
-                $batch->cancel();
-                // Remove batch info on non-running chunks.
-                // Usually, this should be cleaned up in the ->finally() handler
-                // of the dispatched batch, but for some reason it does not.
-                Chunk::where('fetch_batch', $batch->id)
-                    ->orWhere('import_batch', $batch->id)
-                    ->whereNot('fetch_status', 'in_progress')
-                    ->whereNot('import_status', 'in_progress')
-                    ->get()
-                    ->each(function (Chunk $chunk) {
-                        $chunk->fetch_batch = null;
-                        $chunk->import_batch = null;
-                        $chunk->save();
-                    });
+                $chunk = Chunk::findOrFail($job->modelId);
+                $dispatcher = new ChunkDispatcher($chunk->sink);
+                $dispatcher->cancelBatch($batch);
             }
             return;
         }

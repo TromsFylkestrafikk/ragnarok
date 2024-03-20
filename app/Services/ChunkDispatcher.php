@@ -134,6 +134,21 @@ class ChunkDispatcher
     }
 
     /**
+     * Cancel a running batch.
+     *
+     * In addition to actually cancelling a batch, this also broadcasts the
+     * updated/cancelled batch and resets chunk batch status.
+     */
+    public function cancelBatch(Batch &$batch): ChunkDispatcher
+    {
+        $batch->cancel();
+        $batch = Bus::findBatch($batch->id);
+        self::resetChunksBatch($batch);
+        $this->broadcast($this->sink->id, $batch);
+        return $this;
+    }
+
+    /**
      * Create Batch job for these chunks.
      *
      * @param string $jobClass Job to work on chunks
@@ -212,7 +227,10 @@ class ChunkDispatcher
                 $batch->failedJobs,
                 $batch->id
             ));
+        })->catch(function (Batch $batch) {
+            Log::warning(sprintf("[dispatchJobs: %s]: Got exception", $batch->name));
         })->finally(function (Batch $batch) use ($sinkId) {
+            Log::notice(sprintf("[%s]: Batch is finished!", $batch->name));
             static::resetChunksBatch($batch);
             if ($batch->pendingJobs && $batch->failedJobs && !$batch->cancelled()) {
                 Log::notice(sprintf("[%s]: Batch run is complete with failures. Cancelling ...", $batch->name));
@@ -285,9 +303,15 @@ class ChunkDispatcher
         if ($bSink) {
             $bSink->delete();
         }
-        Chunk::whereFetchBatch($batch->id)->orWhere('import_batch', $batch->id)->update([
-            'fetch_batch' => null,
-            'import_batch' => null,
-        ]);
+        Chunk::where('fetch_batch', $batch->id)
+            ->orWhere('import_batch', $batch->id)
+            ->whereNot('fetch_status', 'in_progress')
+            ->whereNot('import_status', 'in_progress')
+            ->get()
+            ->each(function (Chunk $chunk) {
+                $chunk->fetch_batch = null;
+                $chunk->import_batch = null;
+                $chunk->save();
+            });
     }
 }

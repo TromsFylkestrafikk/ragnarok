@@ -28,7 +28,7 @@ class FetchChunk implements ShouldQueue
      *
      * @param int $modelId Model ID of chunk to fetch data for
      */
-    public function __construct(protected int $modelId)
+    public function __construct(public int $modelId)
     {
         $this->onQueue('data');
     }
