@@ -134,21 +134,6 @@ class ChunkDispatcher
     }
 
     /**
-     * Cancel a running batch.
-     *
-     * In addition to actually cancelling a batch, this also broadcasts the
-     * updated/cancelled batch and resets chunk batch status.
-     */
-    public function cancelBatch(Batch &$batch): ChunkDispatcher
-    {
-        $batch->cancel();
-        $batch = Bus::findBatch($batch->id);
-        self::resetChunksBatch($batch);
-        $this->broadcast($this->sink->id, $batch);
-        return $this;
-    }
-
-    /**
      * Create Batch job for these chunks.
      *
      * @param string $jobClass Job to work on chunks
@@ -216,33 +201,72 @@ class ChunkDispatcher
         $start = microtime(true);
         // The batch is serialized. No use of $this in callbacks.
         $sinkId = $this->sink->id;
-        $batch = Bus::batch($jobs)->name("{$sinkId}: $name")->then(function (Batch $batch) use ($start) {
-            Log::info(sprintf(
-                '[%s]: Processed %d of %d jobs in %.2f seconds. Canceled: %s, Failed: %d. Batch ID: %s',
-                $batch->name,
-                $batch->processedJobs(),
-                $batch->totalJobs,
-                microtime(true) - $start,
-                $batch->canceled() ? 'YES' : 'no',
-                $batch->failedJobs,
-                $batch->id
-            ));
-        })->catch(function (Batch $batch) {
-            Log::warning(sprintf("[dispatchJobs: %s]: Got exception", $batch->name));
-        })->finally(function (Batch $batch) use ($sinkId) {
-            Log::notice(sprintf("[%s]: Batch is finished!", $batch->name));
-            static::resetChunksBatch($batch);
-            if ($batch->pendingJobs && $batch->failedJobs && !$batch->cancelled()) {
-                Log::notice(sprintf("[%s]: Batch run is complete with failures. Cancelling ...", $batch->name));
-                $batch->cancel();
-                $batch = Bus::findBatch($batch->id);
-            }
-            BroadcastsBatch::broadcast($sinkId, $batch);
-        })->allowFailures()->onQueue('data')->dispatch();
+        $batch = Bus::batch($jobs)
+            ->name("{$sinkId}: $name")
+            ->then(function (Batch $batch) use ($start, $sinkId) {
+                static::onBatchComplete($batch, $sinkId, $start);
+            })
+            ->catch(function (Batch $batch) use ($sinkId) {
+                static::onBatchException($batch, $sinkId);
+            })
+            ->allowFailures()
+            ->onQueue('data')
+            ->dispatch();
         $this->updateChunksBatch($batch);
-        BroadcastsBatch::broadcast($sinkId, $batch);
+        $this->broadcast($sinkId, $batch);
         $this->info("[%s]: Initiated processing of %d jobs. Batch ID: %s", $batch->name, $batch->totalJobs, $batch->id);
         return $batch->id;
+    }
+
+    /**
+     * Callback handler for Bus::batch()->then()
+     */
+    protected static function onBatchComplete(Batch $batch, string $sinkId, float $startTime): void
+    {
+        Log::info(sprintf(
+            '[%s]: Processed %d of %d jobs in %.2f seconds. Canceled: %s, Failed: %d. Batch ID: %s',
+            $batch->name,
+            $batch->processedJobs(),
+            $batch->totalJobs,
+            microtime(true) - $startTime,
+            $batch->canceled() ? 'YES' : 'no',
+            $batch->failedJobs,
+            $batch->id
+        ));
+        static::resetChunksBatch($batch);
+        BroadcastsBatch::broadcast($sinkId, $batch);
+    }
+
+    /**
+     * Callback handler for Bus::batch()->catch().
+     *
+     * Determinate if number of failures has reached our configured threshold.
+     */
+    protected static function onBatchException(Batch $batch, string $sinkId): void
+    {
+        $limit = config('ragnarok.max_batch_errors', 0);
+        $unit = config('ragnarok.max_batch_errors_unit', null);
+        $limit = $unit === '%' ? $limit * $batch->totalJobs / 100 : $limit;
+        if (!($batch->failedJobs) >= $limit) {
+            return;
+        }
+        $batch->cancel();
+        // The batch object isn't updated on ::cancel(), so we refresh it.
+        $batch = Bus::findBatch($batch->id);
+        if (!$batch) {
+            return;
+        }
+        Log::error(sprintf(
+            "[%s]: With %d of %d jobs pending: Reached %d of %d allowed failures. Batch ID cancelled: %s",
+            $batch->name,
+            $batch->pendingJobs,
+            $batch->totalJobs,
+            $batch->failedJobs,
+            $limit,
+            $batch->id
+        ));
+        BroadcastsBatch::broadcast($sinkId, $batch);
+        self::resetChunksBatch($batch);
     }
 
     /**
@@ -303,6 +327,9 @@ class ChunkDispatcher
         if ($bSink) {
             $bSink->delete();
         }
+        // Here we update each chunk individually so model updates are properly
+        // broadcasted. Chunk::update() will write to DB directly, omitting
+        // broadcasts.
         Chunk::where('fetch_batch', $batch->id)
             ->orWhere('import_batch', $batch->id)
             ->whereNot('fetch_status', 'in_progress')

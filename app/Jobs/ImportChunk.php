@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Facades\Ragnarok;
-use App\Jobs\Middleware\SkipOnBatchErrorLimit;
 use App\Models\Chunk;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -51,7 +50,6 @@ class ImportChunk implements ShouldQueue
         return [
             new WithoutOverlapping(sprintf('chunk-%d-import', $this->modelId)),
             new SkipIfBatchCancelled(),
-            new SkipOnBatchErrorLimit(config('ragnarok.max_batch_errors'), config('ragnarok.max_batch_errors_unit', null)),
         ];
     }
 }

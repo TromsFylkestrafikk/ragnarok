@@ -165,7 +165,6 @@ class SinkHandler
                 ->get()
                 ->map(function (Chunk $chunk) {
                     $this->resetStage($chunk);
-                    $this->notice("importChunk (pre import w/reset): Saving chunk %s", $chunk->chunk_id);
                     $chunk->save();
                 });
         }
@@ -229,21 +228,13 @@ class SinkHandler
         $start = microtime(true);
         $this->resetStage($chunk, $stage);
         $chunk->{$stage . '_status'} = 'in_progress';
-        $this->notice("doRunOperation (pre run w/reset): Saving chunk %s", $chunk->chunk_id);
         $chunk->save();
         try {
             $result = $run();
         } catch (Exception $except) {
-            $this->error(
-                "Chunk %s: Got exception in %s stage with target state: %s",
-                $chunk->chunk_id,
-                $stage,
-                $finalState
-            );
             $chunk->{$stage . '_status'} = 'failed';
             $chunk->{$stage . '_message'} = Utils::exceptToStr($except);
             $chunk->{$stage . '_batch'} = null;
-            $this->notice("doRunOperation (exception): Saving chunk %s", $chunk->chunk_id);
             $chunk->save();
             throw $except;
         }
@@ -252,7 +243,6 @@ class SinkHandler
         if ($finalState === 'finished') {
             $chunk->{$stage . 'ed_at'} = now();
         }
-        $this->notice("doRunOperation (complete): Saving chunk %s", $chunk->chunk_id);
         $chunk->save();
         $this->operationRunTime = microtime(true) - $start;
         return $result;
