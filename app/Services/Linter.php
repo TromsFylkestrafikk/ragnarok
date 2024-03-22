@@ -6,13 +6,14 @@ use App\Models\BatchSink;
 use App\Models\Chunk;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Collection;
+use Ragnarok\Sink\Traits\LogPrintf;
 
 /**
  * Tools for cleaning up unlikely state in chunk and batches tables.
  */
 class Linter
 {
-    use \Ragnarok\Sink\Traits\LogPrintf;
+    use LogPrintf;
 
     public function __construct()
     {
@@ -21,19 +22,19 @@ class Linter
 
     public function chunkLinter(): Linter
     {
-        $newerThan = now()->subHours(4);
+        $newerThan = now()->subMinute();
+        /** @var \Illuminate\Support\Collection<string, array> $batches */
         $batches = DB::table('job_batches')
             ->whereNull('finished_at')
-            ->orWhere('finished_at', '>', $newerThan)
+            ->orWhere('finished_at', '>', $newerThan->getTimestamp())
             ->get()
             ->keyBy('id');
-
         // Case 1: Chunks members of batches that are finished/dead.
+        /** @var Collection<string, Chunk> $chunks */
         $chunks = Chunk::whereNotNull('fetch_batch')->orWhereNotNull('import_batch')->get();
         foreach ($chunks as $chunk) {
-            /** @var Chunk $chunk */
             $batchId = $chunk->fetch_batch ?: $chunk->import_batch;
-            if (!$batchId || empty($batches[$batchId])) {
+            if ($batchId && empty($batches[$batchId])) {
                 $this->notice("%s: Removing chunk %s from stale batch job", $chunk->sink_id, $chunk->chunk_id);
                 $chunk->fetch_batch = $chunk->import_batch = null;
                 $chunk->save();
