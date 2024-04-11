@@ -166,7 +166,7 @@ class Chunk extends Model
         $query->notInBatch()
             ->whereNot('fetch_status', 'new')
             ->whereNot('import_status', 'in_progress')
-            ->whereDate('chunk_date', '>', now()->sub(config('ragnarok.delete_age_threshold')));
+            ->whereDate('fetched_at', '>', now()->sub(config('ragnarok.delete_age_threshold')));
     }
 
     /**
@@ -247,7 +247,7 @@ class Chunk extends Model
             fn (mixed $val, array $attr = []) => $this->not_in_batch
                 && !in_array($attr['fetch_status'], array('in_progress', 'new'))
                 && $attr['import_status'] !== 'in_progress'
-                && now()->sub(config('ragnarok.delete_age_threshold'))->isBefore($this->chunk_date)
+                && now()->sub(config('ragnarok.delete_age_threshold'))->isBefore($this->fetched_at)
         );
     }
 

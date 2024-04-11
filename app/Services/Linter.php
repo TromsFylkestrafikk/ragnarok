@@ -22,7 +22,7 @@ class Linter
 
     public function chunkLinter(): Linter
     {
-        $newerThan = now()->subMinute();
+        $newerThan = now()->subHour();
         /** @var \Illuminate\Support\Collection<string, array> $batches */
         $batches = DB::table('job_batches')
             ->whereNull('finished_at')
