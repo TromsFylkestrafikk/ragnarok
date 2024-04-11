@@ -166,7 +166,7 @@ class Chunk extends Model
         $query->notInBatch()
             ->whereNot('fetch_status', 'new')
             ->whereNot('import_status', 'in_progress')
-            ->whereDate('chunk_date', '>', now()->sub(config('ragnarok.delete_age_threshold')));
+            ->whereDate('fetched_at', '>', now()->sub(config('ragnarok.delete_age_threshold')));
     }
 
     /**
