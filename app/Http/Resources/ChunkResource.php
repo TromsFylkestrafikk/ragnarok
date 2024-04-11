@@ -12,7 +12,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * @property int $id Chunk ID
  * @property string $chunk_id Chunk id as given by source
  * @property string $sink_id
- * @property string|null $chunk_date What moment in time this chunk belongs to
  * @property int|null $sink_file_id File assocciated with fetched chunk
  * @property string $fetch_status Raw data retrieval status
  * @property int|null $fetch_size Total size of fetched files/data
@@ -47,7 +46,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * @method static Builder|Chunk newQuery()
  * @method static Builder|Chunk notInBatch()
  * @method static Builder|Chunk query()
- * @method static Builder|Chunk whereChunkDate($value)
  * @method static Builder|Chunk whereChunkId($value)
  * @method static Builder|Chunk whereCreatedAt($value)
  * @method static Builder|Chunk whereFetchBatch($value)

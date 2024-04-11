@@ -25,7 +25,6 @@ return new class extends Migration
             $table->id()->comment('Chunk ID');
             $table->char('sink_id', 64);
             $table->char('chunk_id', 64)->comment('Chunk id as given by source');
-            $table->dateTime('chunk_date')->nullable()->comment('What moment in time this chunk belongs to');
             $table->unsignedBigInteger('sink_file_id')->nullable()->comment('File assocciated with fetched chunk');
             $table->enum('fetch_status', $statusValues)->default('new')->comment('Raw data retrieval status');
             $table->unsignedInteger('fetch_size')->nullable()->comment('Total size of fetched files/data');

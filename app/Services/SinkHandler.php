@@ -116,7 +116,6 @@ class SinkHandler
             /** @var SinkFile $file */
             $file = $this->src->fetch($chunk->chunk_id);
             $chunk->sink_file_id = $file->id;
-            $chunk->chunk_date = $this->src->getChunkDate($chunk->chunk_id);
             $chunk->fetch_size = $file->size;
             $chunk->fetch_version = $file->checksum;
         }, $chunk, 'fetch');
