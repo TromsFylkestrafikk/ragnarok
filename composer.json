@@ -23,6 +23,7 @@
         "ragnarok/ruter": "dev-main",
         "ragnarok/sink": "dev-main",
         "ragnarok/skyttel": "dev-main",
+        "ragnarok/svv": "dev-main",
         "ragnarok/strex": "dev-main",
         "spatie/laravel-permission": "^5.9",
         "tightenco/ziggy": "^1.0"
@@ -72,45 +73,49 @@
         ]
     },
     "repositories": {
-        "0": {
-            "type": "github",
-            "url": "https://github.com/TromsFylkestrafikk/christmas-tree-parser"
-        },
-        "1": {
+        "ragnarok-svv": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/laravel-netex"
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-svv"
         },
-        "2": {
+        "christmas-tree-parser": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-consat"
+            "url": "https://github.com/tromsFylkestrafikk/christmas-tree-parser"
         },
-        "3": {
+        "laravel-netex": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-entur"
+            "url": "https://github.com/tromsFylkestrafikk/laravel-netex"
         },
-        "4": {
+        "ragnarok-consat": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-fara"
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-consat"
         },
-        "5": {
+        "ragnarok-entur": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-mobitech"
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-entur"
         },
-        "6": {
+        "ragnarok-fara": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-ruter"
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-fara"
         },
-        "7": {
+        "ragnarok-mobitech": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-sink"
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-mobitech"
         },
-        "8": {
+        "ragnarok-ruter": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-skyttel"
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-ruter"
         },
-        "9": {
+        "ragnarok-sink": {
             "type": "vcs",
-            "url": "https://github.com/TromsFylkestrafikk/ragnarok-strex"
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-sink"
+        },
+        "ragnarok-skyttel": {
+            "type": "vcs",
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-skyttel"
+        },
+        "ragnarok-strex": {
+            "type": "vcs",
+            "url": "https://github.com/tromsFylkestrafikk/ragnarok-strex"
         }
     },
     "extra": {
