@@ -115,6 +115,9 @@ class SinkHandler
         $this->doRunOperation(function () use ($chunk) {
             /** @var SinkFile $file */
             $file = $this->src->fetch($chunk->chunk_id);
+            if (!$file) {
+                throw new Exception(sprintf("Got no data from sink %s for chunk ID %s", $chunk->sink_id, $chunk->chunk_id));
+            }
             $chunk->sink_file_id = $file->id;
             $chunk->fetch_size = $file->size;
             $chunk->fetch_version = $file->checksum;
