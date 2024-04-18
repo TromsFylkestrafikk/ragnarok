@@ -1,4 +1,6 @@
-## [Unreleased]
+# Change Log
+
+## [0.1.0] – 2022-04-18
 
 This initial release is based on Laravel jetstream using the inertia
 stack, where we shoe-horn in Vuetify as our main UI.
