@@ -22,7 +22,7 @@
         "ragnarok/mobitech": "^0.1.0",
         "ragnarok/ruter": "^0.1.0",
         "ragnarok/sink": "^0.1.0",
-        "ragnarok/skyttel": "^0.1.0",
+        "ragnarok/skyttel": "dev-main",
         "ragnarok/svv": "^0.1.0",
         "ragnarok/strex": "^0.1.0",
         "spatie/laravel-permission": "^5.9",
