@@ -23,7 +23,7 @@
         "ragnarok/ruter": "^0.1.0",
         "ragnarok/sink": "^0.1.0",
         "ragnarok/skyttel": "dev-main",
-        "ragnarok/svv": "^0.1.0",
+        "ragnarok/svv": "dev-main",
         "ragnarok/strex": "^0.1.0",
         "spatie/laravel-permission": "^5.9",
         "tightenco/ziggy": "^1.0"
