@@ -18,6 +18,14 @@ return [
         'env' => env('ENTUR_ENV', 'dev'),
     ],
 
+    'cleos' => [
+        'auth_url' => env('ENTUR_CLEOS_AUTH_URL'),
+        'client_id' => env('ENTUR_CLEOS_CLIENT_ID'),
+        'client_secret' => env('ENTUR_CLEOS_SECRET'),
+        'audience' => env('ENTUR_CLEOS_AUDIENCE'),
+        'api_path' => trim(env('ENTUR_CLEOS_API_PATH'), '/'),
+    ],
+
     'routedata' => [
         'main_xml' => env('ENTUR_ROUTEDATA_XML_MAIN', '_Shared_data.xml'),
         'activation_period' => env('ENTUR_ROUTEDATA_PERIOD', 'P30D'),
