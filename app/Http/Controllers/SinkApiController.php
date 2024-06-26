@@ -79,14 +79,16 @@ class SinkApiController extends Controller
     }
 
     /**
-     * asd
+     * Fetches documentation from sink. Sets Response statuscode to 204 (no content)
+     * if sink can't find documentat, or 200 (OK) if documentation is found
+     *
+     * @return Response object
      */
     public function getDoc(Sink $sink): Response
     {
         $this->authorize('view', $sink);
-        $res = Ragnarok::getSinkHandler($sink->id)->getSinkDocumentation();
-        $scode = $res === null ? 204 : 200;
-        return response($res, $scode)->header('Content-Type', 'text/html');
+        $doc = Ragnarok::getSinkHandler($sink->id)->getSinkDocumentation();
+        return response($doc, $doc === null ? 204 : 200)->header('Content-Type', 'text/html');
     }
 
     /**
