@@ -83,6 +83,7 @@ class SinkApiController extends Controller
      */
     public function getDoc(Sink $sink): Response
     {
+        $this->authorize('view', $sink);
         $res = Ragnarok::getSinkHandler($sink->id)->getSinkDocumentation();
         $scode = $res === null ? 204 : 200;
         return response($res, $scode)->header('Content-Type', 'text/html');
