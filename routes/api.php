@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::controller(SinkApiController::class)->group(function () {
         Route::post('sinks/{sink}/operation', 'operation');
         Route::get('sinks/{sink}/scan', 'scanLocalFiles');
+        Route::get('sinks/{sink}/getDoc', 'getDoc');
     });
 
     Route::apiResource('sinks.schemas', SinkSchemaApiController::class)->only(['index', 'show']);

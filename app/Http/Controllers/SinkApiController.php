@@ -12,6 +12,7 @@ use App\Services\ChunkDispatcher;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Ragnarok\Sink\Traits\LogPrintf;
 
 class SinkApiController extends Controller
 {
@@ -75,6 +76,16 @@ class SinkApiController extends Controller
             'status' => true,
             'message' => sprintf('Initiated local file scan for sink %s as background job', $sink->title),
         ]);
+    }
+
+    /**
+     * asd
+     */
+    public function getDoc(Sink $sink): Response
+    {
+        $res = Ragnarok::getSinkHandler($sink->id)->getSinkDocumentation();
+        $scode = $res === null ? 204 : 200;
+        return response($res, $scode)->header('Content-Type', 'text/html');
     }
 
     /**
