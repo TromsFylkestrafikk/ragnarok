@@ -206,6 +206,11 @@ class SinkHandler
         SinkScanLocalFiles::dispatch($this->sink->id);
     }
 
+    public function getSinkDocumentation(): string|null
+    {
+        return $this->src->getDocumentation();
+    }
+
     /**
      * Flush cache related to this sink
      */
