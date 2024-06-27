@@ -14,7 +14,6 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-v-html -->
+  <!-- eslint-disable-next-line vue/no-v-html -->
   <div v-html="docs" />
-  <!-- eslint-enable -->
 </template>
