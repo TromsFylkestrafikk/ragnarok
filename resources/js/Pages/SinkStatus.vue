@@ -358,7 +358,12 @@ onMounted(() => {
             <v-col v-if="showOp" class="text-grey">
               {{ selectionCount }} selected
             </v-col>
-            <v-btn icon variant="plain" @click="showDocs()">
+            <v-btn
+              v-if="props.sink.has_doc"
+              icon
+              variant="plain"
+              @click="showDocs()"
+            >
               <v-icon icon="mdi-information" />
               <v-tooltip activator="parent" location="top">
                 Load documentation
