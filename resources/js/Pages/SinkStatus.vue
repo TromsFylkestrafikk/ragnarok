@@ -594,7 +594,7 @@ onMounted(() => {
         <v-toolbar color="primary">
           <v-toolbar-title>Documentation for '{{ props.sink.id }}'</v-toolbar-title>
           <v-spacer />
-            <v-btn icon="mdi-close" @click="docsDialog = false" />
+          <v-btn icon="mdi-close" @click="docsDialog = false" />
         </v-toolbar>
         <v-card-text>
           <sink-docs :sink-id="props.sink.id" />
