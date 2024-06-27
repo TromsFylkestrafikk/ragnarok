@@ -590,16 +590,16 @@ onMounted(() => {
     </v-data-table-server>
 
     <v-dialog v-model="docsDialog" max-width="90%" max-height="80%">
-        <v-card>
+      <v-card>
         <v-toolbar color="primary">
-               <v-toolbar-title>Documentation for '{{ props.sink.id }}'</v-toolbar-title>
-            <v-spacer />
+          <v-toolbar-title>Documentation for '{{ props.sink.id }}'</v-toolbar-title>
+          <v-spacer />
             <v-btn icon="mdi-close" @click="docsDialog = false" />
         </v-toolbar>
         <v-card-text>
-            <sink-docs :sink-id="props.sink.id" />
+          <sink-docs :sink-id="props.sink.id" />
         </v-card-text>
-        </v-card>
+      </v-card>
     </v-dialog>
 
     <confirm-dialog v-model="confDiags.rmChunk" @confirmed="singleChunkOperation(targetChunkId, 'deleteFetched')">
