@@ -15,5 +15,5 @@ onMounted(async () => {
 
 <template>
   <!-- eslint-disable-next-line vue/no-v-html -->
-  <div v-html="docs" style="max-width: 800px"/>
+  <div v-html="docs"/>
 </template>

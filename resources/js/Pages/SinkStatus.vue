@@ -594,7 +594,7 @@ onMounted(() => {
       </template>
     </v-data-table-server>
 
-    <v-dialog v-model="docsDialog" max-width="90%" max-height="80%">
+    <v-dialog v-model="docsDialog" max-width="800px" max-height="80%">
       <v-card>
         <v-toolbar color="primary">
           <v-toolbar-title>Documentation for '{{ props.sink.id }}'</v-toolbar-title>
