@@ -40,7 +40,7 @@ class Sink extends Model
     protected $table = 'ragnarok_sinks';
     protected $keyType = 'string';
     protected $casts = ['single_state' => 'boolean'];
-    protected $appends = ['is_live'];
+    protected $appends = ['is_live', 'has_doc'];
 
     public function chunks(): HasMany
     {
@@ -55,5 +55,12 @@ class Sink extends Model
     public function isLive(): Attribute
     {
         return Attribute::make(get: fn(mixed $value, array $attr) => $attr['status'] === 'live');
+    }
+
+    public function hasDoc(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => (new ($this->impl_class)())->getDocumentation() !== null
+        );
     }
 }

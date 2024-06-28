@@ -4,6 +4,7 @@ import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
 import ChunkError from '@/Pages/Partials/ChunkError.vue';
 import ChunkMenu from '@/Pages/Partials/ChunkMenu.vue';
+import SinkDocs from '@/Pages/Partials/SinkDocs.vue';
 import { permissionProps, usePermissions } from '@/composables/permissions';
 import useStatus from '@/composables/chunks';
 import {
@@ -130,6 +131,13 @@ watch(filterParams, touchSearch);
 function clearChunkId() {
     filterChunkIdInput(null);
     filterChunkIdInput.flush();
+}
+
+// Sink documentation
+const docsDialog = ref(false);
+
+function showDocs() {
+    docsDialog.value = true;
 }
 
 function resetSelection() {
@@ -350,6 +358,17 @@ onMounted(() => {
             <v-col v-if="showOp" class="text-grey">
               {{ selectionCount }} selected
             </v-col>
+            <v-btn
+              v-if="props.sink.has_doc"
+              icon
+              variant="plain"
+              @click="showDocs()"
+            >
+              <v-icon icon="mdi-information" />
+              <v-tooltip activator="parent" location="top">
+                Load documentation
+              </v-tooltip>
+            </v-btn>
             <v-btn v-if="haveOperations" icon @click="showOp = !showOp">
               <v-icon :icon="showOp ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
             </v-btn>
@@ -574,6 +593,19 @@ onMounted(() => {
         </tr>
       </template>
     </v-data-table-server>
+
+    <v-dialog v-model="docsDialog" max-width="90%" max-height="80%">
+      <v-card>
+        <v-toolbar color="primary">
+          <v-toolbar-title>Documentation for '{{ props.sink.id }}'</v-toolbar-title>
+          <v-spacer />
+          <v-btn icon="mdi-close" @click="docsDialog = false" />
+        </v-toolbar>
+        <v-card-text>
+          <sink-docs :sink-id="props.sink.id" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
     <confirm-dialog v-model="confDiags.rmChunk" @confirmed="singleChunkOperation(targetChunkId, 'deleteFetched')">
       <p>This will permamently remove local copy of raw, stage 1 data.</p>
