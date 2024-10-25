@@ -39,6 +39,6 @@ return [
      | ISO-8601 duration.
      */
     'max_age' => [
-        'CallDetails.csv' => 'P3D',
+        'CallDetails.csv' => 'P30D',
     ],
 ];
