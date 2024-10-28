@@ -103,7 +103,9 @@ class RagnarokApi
                 ->where('chunk_id', '>=', $fromChunkId)
                 ->where('chunk_id', '<=', $toChunkId)
                 ->pluck('id')->toArray();
-            $handler->getChunkDispatcher()->setForceFetch()->fetch($ids);
+            // By forcing fetch this will be downloaded, and imported only if
+            // they are modified.
+            $handler->getChunkDispatcher()->setForceFetch()->import($ids);
         })->cron($handler->src->cronRefetch);
     }
 }
