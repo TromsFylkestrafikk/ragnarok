@@ -1,5 +1,9 @@
 # Change Log
 
+## [Unreleased]
+### Added
+- Cogs making re-fetch API in SinkBase work.
+
 ## [0.1.0] – 2022-04-18
 
 This initial release is based on Laravel jetstream using the inertia
