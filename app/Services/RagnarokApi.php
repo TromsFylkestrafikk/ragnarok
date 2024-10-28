@@ -78,7 +78,7 @@ class RagnarokApi
     protected function setupImportSchedule(SinkHandler $handler, Schedule $schedule): void
     {
         $importEvent = $schedule->call([$handler, 'importNewChunks']);
-        if ($handler->src->cron) {
+        if ($handler->src->cron !== null) {
             $importEvent->cron($handler->src->cron);
         } else {
             $importEvent->dailyAt('05:00');
@@ -98,12 +98,12 @@ class RagnarokApi
             if (empty($fromChunkId || empty($toChunkId))) {
                 return;
             }
-            $ids = Chunk::select('chunk_id')
+            $ids = Chunk::select('id')
                 ->where('sink_id', $handler->src::$id)
                 ->where('chunk_id', '>=', $fromChunkId)
                 ->where('chunk_id', '<=', $toChunkId)
-                ->pluck('chunk_id')->toArray();
-            // $handler->getChunkDispatcher()->setForceFetch()->fetch($ids);
+                ->pluck('id')->toArray();
+            $handler->getChunkDispatcher()->setForceFetch()->fetch($ids);
         })->cron($handler->src->cronRefetch);
     }
 }
