@@ -5,8 +5,8 @@
  */
 
 import axios from 'axios';
-import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { configureEcho } from '@laravel/echo-vue';
 
 window.axios = axios;
 
@@ -21,15 +21,15 @@ window.axios.withCredentials = true;
 
 window.Pusher = Pusher;
 
-window.Echo = new Echo({
+configureEcho({
     broadcaster: 'pusher',
     key: import.meta.env.VITE_PUSHER_APP_KEY,
+    forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
     wsHost: import.meta.env.VITE_PUSHER_HOST ?? 'localhost',
     wsPort: import.meta.env.VITE_PUSHER_PORT ?? 80,
     wssPort: import.meta.env.VITE_PUSHER_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
+    enabledTransports: ['ws', 'wss'],
     encrypted: true,
     disableStats: true,
-    enabledTransports: ['ws', 'wss'],
 });

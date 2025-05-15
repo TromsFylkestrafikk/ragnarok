@@ -1,5 +1,5 @@
 //@tailwind base;
+@use './vuetify-tw-compat.scss';
+
 @tailwind components;
 @tailwind utilities;
-
-@import './vuetify-tw-compat.scss';

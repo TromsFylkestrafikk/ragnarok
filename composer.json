@@ -15,7 +15,7 @@
         "laravel/jetstream": "^5.3",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
-        "tightenco/ziggy": "^2.0",
+        "tightenco/ziggy": "^2.5",
         "pusher/pusher-php-server": "^7.2",
         "ragnarok/consat": "dev-main",
         "ragnarok/entur": "dev-main",
