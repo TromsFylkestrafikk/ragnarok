@@ -1,4 +1,5 @@
 <script setup>
+import { useEcho } from '@laravel/echo-vue';
 import { Link } from '@inertiajs/vue3';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { permissionProps } from '@/composables/permissions';
@@ -55,7 +56,7 @@ onMounted(() => {
         });
     });
 
-    Echo.private('sinks').listen('ChunkOperationUpdate', (event) => {
+    useEcho('sinks', 'ChunkOperationUpdate', (event) => {
         if (event.batch.totalJobs < 2) {
             return;
         }

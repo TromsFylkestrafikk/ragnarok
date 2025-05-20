@@ -1,4 +1,5 @@
 <script setup>
+import { useEcho } from '@laravel/echo-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
 import useStatus from '@/composables/chunks';
@@ -66,7 +67,8 @@ const refreshSink = throttle((sinkId) => axios.get(`/api/sinks/${sinkId}`).then(
 }), 1000);
 
 onMounted(() => {
-    Echo.private('sinks').listen(
+    useEcho(
+        'sinks',
         'ChunkOperationUpdate',
         (event) => refreshSink(event.sinkId).then(() => {
             if (event.batch.finishedAt) {

@@ -1,4 +1,5 @@
 <script setup>
+import { useEcho } from '@laravel/echo-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
@@ -295,17 +296,18 @@ async function submitChunkOperation(event) {
 }
 
 onMounted(() => {
-    Echo.private('App.Models.Chunk').listen('.ChunkUpdated', (event) => {
+    useEcho('App.Models.Chunk', '.ChunkUpdated', (event) => {
         findAndUpdate(event.model);
         removeFromSelection(event.model.id);
     });
-    Echo.private('sinks').listen('ChunkOperationUpdate', (event) => {
+    useEcho('sinks', 'ChunkOperationUpdate', (event) => {
         // Re-load chunks on completed cancellation. Cancelled batches will
         // mass-update chunks which aren't broadcasted.
         if (event.batch.progress >= 100 && event.batch.cancelledAt) {
             touchSearch();
         }
-    }).listen('SinkUpdate', (event) => {
+    });
+    useEcho('sinks', 'SinkUpdate', (event) => {
         if (event.sinkId === props.sink.id && event.what === 'local-scan-complete') {
             touchSearch();
             snackProps.color = null;
