@@ -125,7 +125,7 @@ class Chunk extends Model
         };
     }
 
-    public function scopeNotInBatch(Chunk $query): void
+    public function scopeNotInBatch(Builder $query): void
     {
         $query->whereNull('fetch_batch')->whereNull('import_batch');
     }
@@ -135,7 +135,7 @@ class Chunk extends Model
      *
      * Chunk is in state where fetch is allowed.
      */
-    public function scopeCanFetch(Chunk $query): void
+    public function scopeCanFetch(Builder $query): void
     {
         $query->notInBatch()->whereNot('fetch_status', 'in_progress');
     }
@@ -145,7 +145,7 @@ class Chunk extends Model
      *
      * Chunk is in state where fetch is allowed.
      */
-    public function scopeNeedFetch(Chunk $query): void
+    public function scopeNeedFetch(Builder $query): void
     {
         $query->notInBatch()->whereNotIn('fetch_status', ['in_progress', 'finished']);
     }
@@ -153,7 +153,7 @@ class Chunk extends Model
     /**
      * Query scope ::canDeleteFetched()
      */
-    public function scopeCanDeleteFetched(Chunk $query): void
+    public function scopeCanDeleteFetched(Builder $query): void
     {
         $query->notInBatch()
             ->whereNot('fetch_status', 'new')
@@ -166,7 +166,7 @@ class Chunk extends Model
      *
      * Chunk is in a state where import is allowed.
      */
-    public function scopeCanImport(Chunk $query): void
+    public function scopeCanImport(Builder $query): void
     {
         $query->notInBatch()
             ->whereNot('fetch_status', 'in_progress')
@@ -179,7 +179,7 @@ class Chunk extends Model
      * Chunk is in state where import is required to be in sync with upstream
      * data.
      */
-    public function scopeNeedImport(Chunk $query): void
+    public function scopeNeedImport(Builder $query): void
     {
         $query->canImport()
             ->where(function (Builder $query) {
