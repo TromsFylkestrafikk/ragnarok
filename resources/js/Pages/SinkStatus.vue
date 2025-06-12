@@ -296,18 +296,22 @@ async function submitChunkOperation(event) {
 }
 
 onMounted(() => {
-    useEcho('App.Models.Chunk', '.ChunkUpdated', (event) => {
+    console.log(`Sink status is mounted. Adding broadcast listeners …`);
+    useEcho('App.Models.Chunk', 'ChunkUpdated', (event) => {
+        console.log(`Chunk is updated`);
         findAndUpdate(event.model);
         removeFromSelection(event.model.id);
     });
     useEcho('sinks', 'ChunkOperationUpdate', (event) => {
         // Re-load chunks on completed cancellation. Cancelled batches will
         // mass-update chunks which aren't broadcasted.
+        console.log(`Chunk Operation is updated`);
         if (event.batch.progress >= 100 && event.batch.cancelledAt) {
             touchSearch();
         }
     });
     useEcho('sinks', 'SinkUpdate', (event) => {
+        console.log(`Subj is updated`);
         if (event.sinkId === props.sink.id && event.what === 'local-scan-complete') {
             touchSearch();
             snackProps.color = null;
