@@ -78,44 +78,44 @@
             "url": "https://github.com/tromsfylkestrafikk/christmas-tree-parser"
         },
         "laravel-netex": {
-            "type": "path",
-            "url": "../laravel-netex"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/laravel-netex"
         },
         "ragnarok-consat": {
-            "type": "path",
-            "url": "../ragnarok-consat"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-consat"
         },
         "ragnarok-entur": {
-            "type": "path",
-            "url": "../ragnarok-entur"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-entur"
         },
         "ragnarok-fara": {
-            "type": "path",
-            "url": "../ragnarok-fara"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-fara"
         },
         "ragnarok-mobitech": {
-            "type": "path",
-            "url": "../ragnarok-mobitech"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-mobitech"
         },
         "ragnarok-ruter": {
-            "type": "path",
-            "url": "../ragnarok-ruter"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-ruter"
         },
         "ragnarok-sink": {
-            "type": "path",
-            "url": "../ragnarok-sink"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-sink"
         },
         "ragnarok-skyttel": {
-            "type": "path",
-            "url": "../ragnarok-skyttel"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-skyttel"
         },
         "ragnarok-strex": {
-            "type": "path",
-            "url": "../ragnarok-strex"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-strex"
         },
         "ragnarok-svv": {
-            "type": "path",
-            "url": "../ragnarok-svv"
+            "type": "vcs",
+            "url": "https://github.com/tromsfylkestrafikk/ragnarok-svv"
         }
     },
     "extra": {
