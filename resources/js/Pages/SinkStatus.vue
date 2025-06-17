@@ -1,4 +1,8 @@
 <script setup>
+import dayjs from 'dayjs';
+import { filesize } from 'filesize';
+import { forEach, debounce } from 'lodash';
+import { computed, reactive, ref, watch } from 'vue';
 import { useEcho } from '@laravel/echo-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
@@ -8,10 +12,6 @@ import ChunkMenu from '@/Pages/Partials/ChunkMenu.vue';
 import SinkDocs from '@/Pages/Partials/SinkDocs.vue';
 import { permissionProps, usePermissions } from '@/composables/permissions';
 import useStatus from '@/composables/chunks';
-import { computed, reactive, ref, watch } from 'vue';
-import { filesize } from 'filesize';
-import { forEach, debounce } from 'lodash';
-import dayjs from 'dayjs';
 
 const props = defineProps({
     sink: { type: Object, required: true },
@@ -45,7 +45,9 @@ const chunksKeyed = computed(() => {
 // -----------------------------------------------------------------------------
 const { haveOperations } = usePermissions(props);
 const operationItems = computed(() => {
-    const items = props.sink.is_live ? [{ value: 'fetch', title: 'Fetch from sink' }] : [];
+    const items = props.sink.is_live
+        ? [{ value: 'fetch', title: 'Fetch from sink' }]
+        : [];
     return [
         ...items,
         { value: 'deleteFetched', title: 'Delete fetched' },
@@ -62,23 +64,34 @@ const execParams = reactive({
     targetSet: 'selection',
 });
 
-const selectionCount = computed(() => (execParams.targetSet === 'selection' ? execParams.selection.length : chunksCount.value));
+const selectionCount = computed(() =>
+    execParams.targetSet === 'selection'
+        ? execParams.selection.length
+        : chunksCount.value,
+);
 const execForm = ref(null);
 const execRules = reactive({
     operation: [
         (value) => !!value || 'Please select an operation',
-        (value) => !props.sink.single_state || selectionCount.value < 2 || value !== 'import' || 'Import of several chunks not allowed for single state sinks.',
+        (value) =>
+            !props.sink.single_state ||
+            selectionCount.value < 2 ||
+            value !== 'import' ||
+            'Import of several chunks not allowed for single state sinks.',
     ],
     targetSet: [
-        (value) => ((value === 'selection' && selectionCount.value === 0)
-            ? 'Cannot perform operation on empty selection'
-            : true),
+        (value) =>
+            value === 'selection' && selectionCount.value === 0
+                ? 'Cannot perform operation on empty selection'
+                : true,
         (value) => !!value || 'Please select a target',
     ],
 });
 
 const showOp = ref(false);
-const showSelectCheckboxes = computed(() => showOp.value && execParams.targetSet === 'selection');
+const showSelectCheckboxes = computed(
+    () => showOp.value && execParams.targetSet === 'selection',
+);
 
 function resetOperationForm() {
     execForm.value.reset();
@@ -107,7 +120,7 @@ const filterParams = reactive({
 });
 
 function filterInputFactory(param) {
-    return debounce((val) => filterParams[param] = val, 600);
+    return debounce((val) => (filterParams[param] = val), 600);
 }
 
 const filterChunkIdInput = filterInputFactory('chunk_id');
@@ -149,7 +162,9 @@ const { statusColor } = useStatus();
 function getStatusColor(item, stage) {
     const batchColumn = `${stage}_batch`;
     const statusColumn = `${stage}_status`;
-    return item[batchColumn] && item[statusColumn] !== 'in_progress' ? 'gray' : statusColor.value[item[statusColumn]];
+    return item[batchColumn] && item[statusColumn] !== 'in_progress'
+        ? 'gray'
+        : statusColor.value[item[statusColumn]];
 }
 
 // -----------------------------------------------------------------------------
@@ -169,11 +184,15 @@ function confirmImportDeletion(chunkId) {
 }
 
 const needConfirmation = computed(
-    () => ['deleteFetched', 'deleteImported'].includes(execParams.operation) || selectionCount.value >= 20
+    () =>
+        ['deleteFetched', 'deleteImported'].includes(execParams.operation) ||
+        selectionCount.value >= 20,
 );
 
 const confirmOpText = computed(() => {
-    const destructive = ['deleteFetched', 'deleteImported'].includes(execParams.operation);
+    const destructive = ['deleteFetched', 'deleteImported'].includes(
+        execParams.operation,
+    );
     return selectionCount.value > 20
         ? `You are about to perform a ${destructive ? 'destructive' : 'resource hungry'} operation on a large set (${selectionCount.value})`
         : 'This is a destructive operation and will permanetly erase data from storage';
@@ -223,11 +242,10 @@ function removeFromSelection(idToRemove) {
     }
 }
 
-function canImport(chunk) {
-    return props.permissions.operations.import
-        && (props.sink.is_live || chunk.fetch_status === 'finished')
-        && chunk.need_import;
-}
+const canImport = (chunk) =>
+    props.permissions.operations.import &&
+    (props.sink.is_live || chunk.fetch_status === 'finished') &&
+    chunk.need_import;
 
 // -----------------------------------------------------------------------------
 // Loading and operation execution!
@@ -237,44 +255,50 @@ const ajaxing = ref(false);
 
 async function loadChunks({ page, itemsPerPage, sortBy }) {
     loading.value = true;
-    const state = await axios.get(`/api/sinks/${props.sink.id}/chunks`, {
-        params: {
-            page,
-            itemsPerPage,
-            sortBy,
-            ...filterParams,
-        },
-    }).finally(() => loading.value = false);
+    const state = await axios
+        .get(`/api/sinks/${props.sink.id}/chunks`, {
+            params: {
+                page,
+                itemsPerPage,
+                sortBy,
+                ...filterParams,
+            },
+        })
+        .finally(() => (loading.value = false));
     chunks.value = state.data.chunks;
     chunksCount.value = state.data.meta.total;
 }
 
 function singleChunkOperation(id, operation) {
     ajaxing.value = true;
-    return axios.patch(`/api/sinks/${props.sink.id}/chunks/${id}`, { operation })
+    return axios
+        .patch(`/api/sinks/${props.sink.id}/chunks/${id}`, { operation })
         .then((result) => findAndUpdate(result.data.chunk))
-        .finally(() => ajaxing.value = false);
+        .finally(() => (ajaxing.value = false));
 }
 
 /**
- * Perform actual operation on chunk selection
+ * Perform actual operation on chunk selection.
  */
 async function execOperation() {
     ajaxing.value = true;
-    return axios.post(`/api/sinks/${props.sink.id}/operation`, {
-        ...filterParams,
-        ...execParams,
-    }).then((result) => {
-        snackProps.color = result.data.status ? null : 'warning';
-        snackProps.message = `Server said: ${result.data.message}`;
-        snackProps.model = true;
-        // Reload chunks to retrieve new state. Mass-updated chunks aren't
-        // broadcasted so we need to force it.
-        touchSearch();
-    }).finally(() => {
-        ajaxing.value = false;
-        resetOperationForm();
-    });
+    return axios
+        .post(`/api/sinks/${props.sink.id}/operation`, {
+            ...filterParams,
+            ...execParams,
+        })
+        .then((result) => {
+            snackProps.color = result.data.status ? null : 'warning';
+            snackProps.message = `Server said: ${result.data.message}`;
+            snackProps.model = true;
+            // Reload chunks to retrieve new state. Mass-updated chunks aren't
+            // broadcasted so we need to force it.
+            touchSearch();
+        })
+        .finally(() => {
+            ajaxing.value = false;
+            resetOperationForm();
+        });
 }
 
 async function submitChunkOperation(event) {
@@ -304,14 +328,16 @@ useEcho('sinks', 'ChunkOperationUpdate', (event) => {
 });
 
 useEcho('sinks', 'SinkUpdate', (event) => {
-    if (event.sinkId === props.sink.id && event.what === 'local-scan-complete') {
+    if (
+        event.sinkId === props.sink.id &&
+        event.what === 'local-scan-complete'
+    ) {
         touchSearch();
         snackProps.color = null;
         snackProps.message = event.message;
         snackProps.model = true;
     }
 });
-
 </script>
 
 <template>

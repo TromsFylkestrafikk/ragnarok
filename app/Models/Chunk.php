@@ -135,7 +135,7 @@ class Chunk extends Model
      *
      * Chunk is in state where fetch is allowed.
      */
-    public function scopeCanFetch(Builder $query): void
+    public function scopeCanFetch($query): void
     {
         $query->notInBatch()->whereNot('fetch_status', 'in_progress');
     }
@@ -145,7 +145,7 @@ class Chunk extends Model
      *
      * Chunk is in state where fetch is allowed.
      */
-    public function scopeNeedFetch(Builder $query): void
+    public function scopeNeedFetch($query): void
     {
         $query->notInBatch()->whereNotIn('fetch_status', ['in_progress', 'finished']);
     }
@@ -153,7 +153,7 @@ class Chunk extends Model
     /**
      * Query scope ::canDeleteFetched()
      */
-    public function scopeCanDeleteFetched(Builder $query): void
+    public function scopeCanDeleteFetched($query): void
     {
         $query->notInBatch()
             ->whereNot('fetch_status', 'new')
@@ -166,7 +166,7 @@ class Chunk extends Model
      *
      * Chunk is in a state where import is allowed.
      */
-    public function scopeCanImport(Builder $query): void
+    public function scopeCanImport($query): void
     {
         $query->notInBatch()
             ->whereNot('fetch_status', 'in_progress')
@@ -179,10 +179,10 @@ class Chunk extends Model
      * Chunk is in state where import is required to be in sync with upstream
      * data.
      */
-    public function scopeNeedImport(Builder $query): void
+    public function scopeNeedImport($query): void
     {
         $query->canImport()
-            ->where(function (Builder $query) {
+            ->where(function ($query) {
                 $query->whereNot('import_status', 'finished')->orWhere->isModified();
             });
     }
@@ -190,7 +190,7 @@ class Chunk extends Model
     /**
      * Query scope ::canDeleteImported()
      */
-    public function scopeCanDeleteImported(Builder $query): void
+    public function scopeCanDeleteImported($query): void
     {
         $query->whereNot('import_status', 'new');
     }
@@ -200,7 +200,7 @@ class Chunk extends Model
      *
      * Chunk is fetched and imported, but the imported version differ.
      */
-    public function scopeIsModified(Builder $query): void
+    public function scopeIsModified($query): void
     {
         $query->where('fetch_status', 'finished')
             ->where('import_status', 'finished')

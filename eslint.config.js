@@ -133,6 +133,7 @@ const confVueSinglefileComponents = {
         ],
         'vue/no-mutating-props': 'off',
         'vue/no-v-html': 'off',
+        'vue/valid-v-slot': ['error', { allowModifiers: true }],
         'prettier-vue/prettier': ['error'],
     },
     settings: {
