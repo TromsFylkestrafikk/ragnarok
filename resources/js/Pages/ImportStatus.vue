@@ -66,17 +66,15 @@ const refreshSink = throttle((sinkId) => axios.get(`/api/sinks/${sinkId}`).then(
     assign(props.sinks[result.data.sink.id], result.data.sink);
 }), 1000);
 
-onMounted(() => {
-    useEcho(
-        'sinks',
-        'ChunkOperationUpdate',
-        (event) => refreshSink(event.sinkId).then(() => {
-            if (event.batch.finishedAt) {
-                sinkIsBusy.value[event.sinkId] = false;
-            }
-        })
-    );
-});
+useEcho(
+    'sinks',
+    'ChunkOperationUpdate',
+    (event) => refreshSink(event.sinkId).then(() => {
+        if (event.batch.finishedAt) {
+            sinkIsBusy.value[event.sinkId] = false;
+        }
+    })
+);
 
 </script>
 
