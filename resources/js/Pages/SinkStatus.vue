@@ -8,13 +8,7 @@ import ChunkMenu from '@/Pages/Partials/ChunkMenu.vue';
 import SinkDocs from '@/Pages/Partials/SinkDocs.vue';
 import { permissionProps, usePermissions } from '@/composables/permissions';
 import useStatus from '@/composables/chunks';
-import {
-    computed,
-    onMounted,
-    reactive,
-    ref,
-    watch,
-} from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { filesize } from 'filesize';
 import { forEach, debounce } from 'lodash';
 import dayjs from 'dayjs';
@@ -295,31 +289,29 @@ async function submitChunkOperation(event) {
     execOperation();
 }
 
-onMounted(() => {
-    console.log(`Sink status is mounted. Adding broadcast listeners …`);
-    useEcho('App.Models.Chunk', 'ChunkUpdated', (event) => {
-        console.log(`Chunk is updated`);
-        findAndUpdate(event.model);
-        removeFromSelection(event.model.id);
-    });
-    useEcho('sinks', 'ChunkOperationUpdate', (event) => {
-        // Re-load chunks on completed cancellation. Cancelled batches will
-        // mass-update chunks which aren't broadcasted.
-        console.log(`Chunk Operation is updated`);
-        if (event.batch.progress >= 100 && event.batch.cancelledAt) {
-            touchSearch();
-        }
-    });
-    useEcho('sinks', 'SinkUpdate', (event) => {
-        console.log(`Subj is updated`);
-        if (event.sinkId === props.sink.id && event.what === 'local-scan-complete') {
-            touchSearch();
-            snackProps.color = null;
-            snackProps.message = event.message;
-            snackProps.model = true;
-        }
-    });
+// Setup broadcast listeners
+useEcho('App.Models.Chunk', '.ChunkUpdated', (event) => {
+    findAndUpdate(event.model);
+    removeFromSelection(event.model.id);
 });
+
+useEcho('sinks', 'ChunkOperationUpdate', (event) => {
+    // Re-load chunks on completed cancellation. Cancelled batches will
+    // mass-update chunks which aren't broadcasted.
+    if (event.batch.progress >= 100 && event.batch.cancelledAt) {
+        touchSearch();
+    }
+});
+
+useEcho('sinks', 'SinkUpdate', (event) => {
+    if (event.sinkId === props.sink.id && event.what === 'local-scan-complete') {
+        touchSearch();
+        snackProps.color = null;
+        snackProps.message = event.message;
+        snackProps.model = true;
+    }
+});
+
 </script>
 
 <template>

@@ -16,12 +16,7 @@
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "isolatedModules": true,
-        "skipLibCheck": true,
-        "plugins": [
-            {
-                "name": "typescript-eslint-language-service"
-            }
-        ]
+        "skipLibCheck": true
     },
     "extends": "@vue/tsconfig/tsconfig.dom.json",
     "include": ["resources/js/**/*", "resources/js/**/*.vue"],

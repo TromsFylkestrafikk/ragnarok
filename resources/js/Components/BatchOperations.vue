@@ -49,21 +49,21 @@ function progressBarColor(batch) {
     return 'amber';
 }
 
+useEcho('sinks', 'ChunkOperationUpdate', (event) => {
+    if (event.batch.totalJobs < 2) {
+        return;
+    }
+    if (props.sinkId && !event.batch.name.startsWith(`${props.sinkId}: `)) {
+        return;
+    }
+    replaceBatch(event.batch);
+});
+
 onMounted(() => {
     axios.get('/api/batch', { params: props.sinkId ? { sinkId: props.sinkId } : {} }).then((result) => {
         forEach(result.data, (batch) => {
             batches[batch.id] = batch;
         });
-    });
-
-    useEcho('sinks', 'ChunkOperationUpdate', (event) => {
-        if (event.batch.totalJobs < 2) {
-            return;
-        }
-        if (props.sinkId && !event.batch.name.startsWith(`${props.sinkId}: `)) {
-            return;
-        }
-        replaceBatch(event.batch);
     });
 });
 
