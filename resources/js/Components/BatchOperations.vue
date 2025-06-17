@@ -1,9 +1,10 @@
 <script setup>
+import { computed, onMounted, reactive, ref } from 'vue';
+import { reduce, forEach } from 'lodash';
+import { useEcho } from '@laravel/echo-vue';
 import { Link } from '@inertiajs/vue3';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { permissionProps } from '@/composables/permissions';
-import { computed, onMounted, reactive, ref } from 'vue';
-import { reduce, forEach } from 'lodash';
 
 const props = defineProps({
     sinkId: { type: String, default: null },
@@ -27,7 +28,9 @@ function openConfirm(batch) {
 }
 
 function cancelBatch() {
-    axios.delete(`/api/batch/${confirmBatchId.value}`).then((result) => replaceBatch(result.data.batch));
+    axios
+        .delete(`/api/batch/${confirmBatchId.value}`)
+        .then((result) => replaceBatch(result.data.batch));
 }
 
 function progressBarContent(batch) {
@@ -48,24 +51,27 @@ function progressBarColor(batch) {
     return 'amber';
 }
 
-onMounted(() => {
-    axios.get('/api/batch', { params: props.sinkId ? { sinkId: props.sinkId } : {} }).then((result) => {
-        forEach(result.data, (batch) => {
-            batches[batch.id] = batch;
-        });
-    });
-
-    Echo.private('sinks').listen('ChunkOperationUpdate', (event) => {
-        if (event.batch.totalJobs < 2) {
-            return;
-        }
-        if (props.sinkId && !event.batch.name.startsWith(`${props.sinkId}: `)) {
-            return;
-        }
-        replaceBatch(event.batch);
-    });
+useEcho('sinks', 'ChunkOperationUpdate', (event) => {
+    if (event.batch.totalJobs < 2) {
+        return;
+    }
+    if (props.sinkId && !event.batch.name.startsWith(`${props.sinkId}: `)) {
+        return;
+    }
+    replaceBatch(event.batch);
 });
 
+onMounted(() => {
+    axios
+        .get('/api/batch', {
+            params: props.sinkId ? { sinkId: props.sinkId } : {},
+        })
+        .then((result) => {
+            forEach(result.data, (batch) => {
+                batches[batch.id] = batch;
+            });
+        });
+});
 </script>
 
 <template>

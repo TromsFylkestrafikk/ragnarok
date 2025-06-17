@@ -5,5 +5,4 @@ parameters:
   paths:
     - ./app
     - ./tests
-  checkMissingIterableValueType: false
   treatPhpDocTypesAsCertain: false
