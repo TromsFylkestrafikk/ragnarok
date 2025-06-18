@@ -1,0 +1,40 @@
+# -*- mode: nginx; -*-
+
+server {
+    server_name reverb.example.com;
+    root /var/www/html;
+    access_log  /var/log/nginx/reverb-access.log;
+    error_log  /var/log/nginx/reverb-error.log error;
+
+    # Local / dev
+    # listen 80;
+    # listen [::]:80;
+
+    # Production / staging
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    ssl_certificate /etc/nginx/certs/reverb.example.com/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/reverb.example.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Content-Type-Options "nosniff";
+
+    index index.html index.htm index.php;
+
+    charset utf-8;
+    server_tokens off;
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Scheme $scheme;
+        proxy_set_header SERVER_PORT $server_port;
+        proxy_set_header REMOTE_ADDR $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_pass http://127.0.0.1:9080;
+    }
+}
