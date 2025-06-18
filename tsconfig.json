@@ -1,0 +1,40 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "jsx": "preserve",
+        "lib": ["DOM", "DOM.Iterable", "ES2023"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "paths": { "@/*": ["./resources/js/*"] },
+        "resolveJsonModule": true,
+        "typeRoots": ["./node_modules"],
+        "types": ["vite/client"],
+        "allowJs": true,
+        "allowSyntheticDefaultImports": true,
+        "allowImportingTsExtensions": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true,
+        "skipLibCheck": true
+    },
+    "extends": "@vue/tsconfig/tsconfig.dom.json",
+    "include": ["resources/js/**/*", "resources/js/**/*.vue"],
+    "exclude": [
+        "app",
+        "bootstrap",
+        "config",
+        "database",
+        "etc",
+        "node_modules",
+        "public",
+        "resources/lang",
+        "resources/views",
+        "routes",
+        "scripts",
+        "storage",
+        "tests",
+        "vendor"
+    ],
+    "references": [{ "path": "./tsconfig.node.json" }]
+}

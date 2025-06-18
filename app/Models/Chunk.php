@@ -14,8 +14,6 @@ use Ragnarok\Sink\Models\SinkFile;
 /**
  * \App\Models\Chunk
  *
- * @SuppressWarnings(PHPMD.UnusedFormalParameter)
- *
  * @property int $id Chunk ID
  * @property string $chunk_id Chunk id as given by source
  * @property string $sink_id
@@ -137,9 +135,8 @@ class Chunk extends Model
      *
      * Chunk is in state where fetch is allowed.
      */
-    public function scopeCanFetch(Builder $query): void
+    public function scopeCanFetch($query): void
     {
-        /** @var Chunk $query */
         $query->notInBatch()->whereNot('fetch_status', 'in_progress');
     }
 
@@ -148,18 +145,16 @@ class Chunk extends Model
      *
      * Chunk is in state where fetch is allowed.
      */
-    public function scopeNeedFetch(Builder $query): void
+    public function scopeNeedFetch($query): void
     {
-        /** @var Chunk $query */
         $query->notInBatch()->whereNotIn('fetch_status', ['in_progress', 'finished']);
     }
 
     /**
      * Query scope ::canDeleteFetched()
      */
-    public function scopeCanDeleteFetched(Builder $query): void
+    public function scopeCanDeleteFetched($query): void
     {
-        /** @var Chunk $query */
         $query->notInBatch()
             ->whereNot('fetch_status', 'new')
             ->whereNot('import_status', 'in_progress')
@@ -171,9 +166,8 @@ class Chunk extends Model
      *
      * Chunk is in a state where import is allowed.
      */
-    public function scopeCanImport(Builder $query): void
+    public function scopeCanImport($query): void
     {
-        /** @var Chunk $query */
         $query->notInBatch()
             ->whereNot('fetch_status', 'in_progress')
             ->whereNot('import_status', 'in_progress');
@@ -185,11 +179,10 @@ class Chunk extends Model
      * Chunk is in state where import is required to be in sync with upstream
      * data.
      */
-    public function scopeNeedImport(Builder $query): void
+    public function scopeNeedImport($query): void
     {
-        /** @var Chunk $query */
         $query->canImport()
-            ->where(function (Builder $query) {
+            ->where(function ($query) {
                 $query->whereNot('import_status', 'finished')->orWhere->isModified();
             });
     }
@@ -197,7 +190,7 @@ class Chunk extends Model
     /**
      * Query scope ::canDeleteImported()
      */
-    public function scopeCanDeleteImported(Builder $query): void
+    public function scopeCanDeleteImported($query): void
     {
         $query->whereNot('import_status', 'new');
     }
@@ -207,7 +200,7 @@ class Chunk extends Model
      *
      * Chunk is fetched and imported, but the imported version differ.
      */
-    public function scopeIsModified(Builder $query): void
+    public function scopeIsModified($query): void
     {
         $query->where('fetch_status', 'finished')
             ->where('import_status', 'finished')
@@ -244,7 +237,8 @@ class Chunk extends Model
             fn (mixed $val, array $attr = []) => $this->not_in_batch
                 && !in_array($attr['fetch_status'], array('in_progress', 'new'))
                 && $attr['import_status'] !== 'in_progress'
-                && now()->sub(config('ragnarok.delete_age_threshold'))->isBefore($this->fetched_at)
+                && (!$this->fetched_at ||
+                    now()->sub(config('ragnarok.delete_age_threshold'))->isBefore($this->fetched_at))
         );
     }
 

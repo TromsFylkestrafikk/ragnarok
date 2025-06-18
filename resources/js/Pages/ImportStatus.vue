@@ -1,12 +1,13 @@
 <script setup>
+import axios from 'axios';
+import { assign, forEach, reduce, throttle } from 'lodash';
+import { computed, ref } from 'vue';
+import { Link } from '@inertiajs/vue3';
+import { useEcho } from '@laravel/echo-vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BatchOperations from '@/Components/BatchOperations.vue';
 import useStatus from '@/composables/chunks';
-import { Link } from '@inertiajs/vue3';
 import { permissionProps } from '@/composables/permissions';
-import axios from 'axios';
-import { assign, forEach, reduce, throttle } from 'lodash';
-import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
     sinks: { type: Object, required: true },
@@ -24,58 +25,70 @@ const headers = ref([
 const page = ref(1);
 const { statusColor } = useStatus();
 
-const sinksArray = computed(() => reduce(props.sinks, (ret, sink) => {
-    ret.push(sink);
-    return ret;
-}, []));
+const sinksArray = computed(() =>
+    reduce(
+        props.sinks,
+        (ret, sink) => {
+            ret.push(sink);
+            return ret;
+        },
+        [],
+    ),
+);
 
 const sinkIsBusy = ref({});
 
 const canImport = computed(() => {
     const ret = {};
     forEach(props.sinks, (sink) => {
-        ret[sink.id] = sink.is_live && sink.newChunks > 0 && !(sinkIsBusy.value[sink.id] ?? false);
+        ret[sink.id] =
+            sink.is_live &&
+            sink.newChunks > 0 &&
+            !(sinkIsBusy.value[sink.id] ?? false);
     });
     return ret;
 });
 
 function rowProps({ item }) {
-    return item.is_live ? null : {
-        class: [`status-${item.status}`],
-    };
+    return item.is_live
+        ? null
+        : {
+              class: [`status-${item.status}`],
+          };
 }
 
 function importNew(sinkId) {
     sinkIsBusy.value[sinkId] = true;
-    return axios.patch(`/api/sinks/${sinkId}/operation`, { operation: 'importNew' });
+    return axios.patch(`/api/sinks/${sinkId}/operation`, {
+        operation: 'importNew',
+    });
 }
 
 function setSinkStatus(sinkId, status) {
     const sink = props.sinks[sinkId];
-    axios.patch(`/api/sinks/${sinkId}`, { status })
-        .then((result) => {
-            sink.status = result.data.sink.status;
-            sink.is_live = result.data.sink.is_live;
-        });
+    axios.patch(`/api/sinks/${sinkId}`, { status }).then((result) => {
+        sink.status = result.data.sink.status;
+        sink.is_live = result.data.sink.is_live;
+    });
 }
 
-const refreshSink = throttle((sinkId) => axios.get(`/api/sinks/${sinkId}`).then((result) => {
-    // We cannot replace props. Update the individual sink properties
-    // directly.
-    assign(props.sinks[result.data.sink.id], result.data.sink);
-}), 1000);
+const refreshSink = throttle(
+    (sinkId) =>
+        axios.get(`/api/sinks/${sinkId}`).then((result) => {
+            // We cannot replace props. Update the individual sink properties
+            // directly.
+            assign(props.sinks[result.data.sink.id], result.data.sink);
+        }),
+    1000,
+);
 
-onMounted(() => {
-    Echo.private('sinks').listen(
-        'ChunkOperationUpdate',
-        (event) => refreshSink(event.sinkId).then(() => {
-            if (event.batch.finishedAt) {
-                sinkIsBusy.value[event.sinkId] = false;
-            }
-        })
-    );
-});
-
+useEcho('sinks', 'ChunkOperationUpdate', (event) =>
+    refreshSink(event.sinkId).then(() => {
+        if (event.batch.finishedAt) {
+            sinkIsBusy.value[event.sinkId] = false;
+        }
+    }),
+);
 </script>
 
 <template>
