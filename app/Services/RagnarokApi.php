@@ -6,7 +6,7 @@ use App\Models\Sink;
 use App\Models\Chunk;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Schedule;
 
 /**
  * Service for operating on sinks
@@ -46,19 +46,19 @@ class RagnarokApi
     /**
      * Setup scheduled tasks for sink imports.
      */
-    public function schedule(Schedule $schedule): RagnarokApi
+    public function schedule(): RagnarokApi
     {
         // This is ran/called during boot, and if DB isn't properly
         // migrated/installed this will choke.
         if (!Schema::hasTable('ragnarok_sinks')) {
             return $this;
         }
-        $this->getSinkHandlers()->each(function (SinkHandler $handler) use ($schedule) {
+        $this->getSinkHandlers()->each(function (SinkHandler $handler) {
             if (! $handler->sink->is_live) {
                 return;
             }
-            $this->setupImportSchedule($handler, $schedule);
-            $this->setupRefetchSchedule($handler, $schedule);
+            $this->setupImportSchedule($handler);
+            $this->setupRefetchSchedule($handler);
         });
         return $this;
     }
@@ -75,9 +75,9 @@ class RagnarokApi
     /**
      * Setup scheduled import for sink.
      */
-    protected function setupImportSchedule(SinkHandler $handler, Schedule $schedule): void
+    protected function setupImportSchedule(SinkHandler $handler): void
     {
-        $importEvent = $schedule->call([$handler, 'importNewChunks']);
+        $importEvent = Schedule::call([$handler, 'importNewChunks']);
         if ($handler->src->cron !== null) {
             $importEvent->cron($handler->src->cron);
         } else {
@@ -88,12 +88,12 @@ class RagnarokApi
     /**
      * Setup scheduled re-fetch of chunks from sink.
      */
-    protected function setupRefetchSchedule(SinkHandler $handler, Schedule $schedule): void
+    protected function setupRefetchSchedule(SinkHandler $handler): void
     {
         if (empty($handler->src->cronRefetch)) {
             return;
         }
-        $schedule->call(function () use ($handler) {
+        Schedule::call(function () use ($handler) {
             list ($fromChunkId, $toChunkId) = $handler->src->refetchIdRange();
             if (empty($fromChunkId || empty($toChunkId))) {
                 return;
