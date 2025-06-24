@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 use Ragnarok\Sink\Models\SinkFile;
 
 /**
@@ -155,10 +156,12 @@ class Chunk extends Model
      */
     public function scopeCanDeleteFetched($query): void
     {
-        $query->notInBatch()
+        $altered = $query->notInBatch()
             ->whereNot('fetch_status', 'new')
-            ->whereNot('import_status', 'in_progress')
-            ->whereDate('fetched_at', '>', now()->sub(config('ragnarok.delete_age_threshold')));
+            ->whereNot('import_status', 'in_progress');
+        if (!Auth::user()->hasRole('admin')) {
+            $altered->whereDate('fetched_at', '>', now()->sub(config('ragnarok.delete_age_threshold')));
+        }
     }
 
     /**
