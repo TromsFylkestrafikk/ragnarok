@@ -7,6 +7,10 @@
 - Cogs making re-fetch API in SinkBase work.
 - Upgraded Laravel to 12.x
 
+### Fixed
+
+- Made timezone config available in `.env`.
+
 ## [0.1.0] – 2022-04-18
 
 This initial release is based on Laravel jetstream using the inertia stack,
