@@ -24,6 +24,7 @@ return [
         'client_secret' => env('ENTUR_CLEOS_SECRET'),
         'audience' => env('ENTUR_CLEOS_AUDIENCE'),
         'api_path' => trim(env('ENTUR_CLEOS_API_PATH'), '/'),
+        'data_product_version' => env('ENTUR_CLEOS_DATA_PRODUCT_VERSION'),
     ],
 
     'routedata' => [
