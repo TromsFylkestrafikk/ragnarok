@@ -23,6 +23,14 @@ class FetchChunk implements ShouldQueue
     use SerializesModels;
 
     /**
+     * Set max job execution time to four minutes
+     *
+     * @see `config('queue.connections.redis.retry_after')` and
+     * `REDIS_QUEUE_RETRY_AFTER` in `.env`.
+     */
+    public $timeout = 240;
+
+    /**
      * Create a new job instance.
      *
      * @param int $modelId Model ID of chunk to fetch data for
