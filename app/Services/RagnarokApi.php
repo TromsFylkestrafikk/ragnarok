@@ -27,7 +27,7 @@ class RagnarokApi
             return $this->handlers;
         }
         $this->handlers = Sink::all()->reduce(
-            fn (Collection $result, $sink) => $result->put($sink->id, new SinkHandler($sink)),
+            fn(Collection $result, $sink) => $result->put($sink->id, new SinkHandler($sink)),
             collect()
         );
         return $this->handlers;
@@ -68,7 +68,7 @@ class RagnarokApi
      */
     public function updateAll(): RagnarokApi
     {
-        $this->getSinkHandlers()->each(fn (SinkHandler $handler) => $handler->importNewChunks());
+        $this->getSinkHandlers()->each(fn(SinkHandler $handler) => $handler->importNewChunks());
         return $this;
     }
 
@@ -94,7 +94,7 @@ class RagnarokApi
             return;
         }
         Schedule::call(function () use ($handler) {
-            list ($fromChunkId, $toChunkId) = $handler->src->refetchIdRange();
+            list($fromChunkId, $toChunkId) = $handler->src->refetchIdRange();
             if (empty($fromChunkId || empty($toChunkId))) {
                 return;
             }
@@ -105,7 +105,10 @@ class RagnarokApi
                 ->pluck('id')->toArray();
             // By forcing fetch this will be downloaded, and imported only if
             // they are modified.
-            $handler->getChunkDispatcher()->setForceFetch()->import($ids);
+            $handler->getChunkDispatcher()
+                ->setForceFetch()
+                ->setForceImport()
+                ->import($ids);
         })->cron($handler->src->cronRefetch);
     }
 }
