@@ -128,8 +128,12 @@ class RagnarokApi
         }
     }
 
-    protected function addRefetchScheduler($handler, $cron, $fromChunkId, $toChunkId): void
-    {
+    protected function addRefetchScheduler(
+        SinkHandler $handler,
+        string $cron,
+        string $fromChunkId,
+        string $toChunkId
+    ): void {
         Schedule::call(function () use ($handler, $fromChunkId, $toChunkId) {
             $ids = Chunk::select('id')
                 ->where('sink_id', $handler->src::$id)
