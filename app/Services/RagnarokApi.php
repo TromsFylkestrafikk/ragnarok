@@ -59,6 +59,7 @@ class RagnarokApi
             }
             $this->setupImportSchedule($handler);
             $this->setupRefetchSchedule($handler);
+            $this->setupRefetchSchedulers($handler);
         });
         return $this;
     }
@@ -110,5 +111,40 @@ class RagnarokApi
                 ->setForceImport()
                 ->import($ids);
         })->cron($handler->src->cronRefetch);
+    }
+
+    /**
+     * Setup scheduled re-fetch of chunks from sink for multiple ranges.
+     */
+    protected function setupRefetchSchedulers(SinkHandler $handler): void
+    {
+        if (empty($handler->src->cronRefetchAndImport)) {
+            return;
+        }
+
+        foreach ($handler->src->cronRefetchAndImport as [$cron, $range]) {
+            list($fromChunkId, $toChunkId) = $handler->src->refetchAndImportIdRange($range);
+            $this->addRefetchScheduler($handler, $cron, $fromChunkId, $toChunkId);
+        }
+    }
+
+    protected function addRefetchScheduler(
+        SinkHandler $handler,
+        string $cron,
+        string $fromChunkId,
+        string $toChunkId
+    ): void {
+        Schedule::call(function () use ($handler, $fromChunkId, $toChunkId) {
+            $ids = Chunk::select('id')
+                ->where('sink_id', $handler->src::$id)
+                ->where('chunk_id', '>=', $fromChunkId)
+                ->where('chunk_id', '<=', $toChunkId)
+                ->pluck('id')->toArray();
+            // Force fetch and import all chunks in range.
+            $handler->getChunkDispatcher()
+                ->setForceFetch()
+                ->setForceImport()
+                ->import($ids);
+        })->cron($cron);
     }
 }
